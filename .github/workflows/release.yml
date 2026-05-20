@@ -1,0 +1,106 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            ext: ""
+            archive: tar.gz
+          - goos: linux
+            goarch: arm64
+            ext: ""
+            archive: tar.gz
+          - goos: darwin
+            goarch: amd64
+            ext: ""
+            archive: tar.gz
+          - goos: darwin
+            goarch: arm64
+            ext: ""
+            archive: tar.gz
+          - goos: windows
+            goarch: amd64
+            ext: ".exe"
+            archive: zip
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.2"
+          cache: true
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          mkdir -p dist package
+          VERSION="${GITHUB_REF_NAME}"
+          COMMIT="$(git rev-parse --short HEAD)"
+          DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          BIN="adal-cli${{ matrix.ext }}"
+          ARCHIVE="adal-cli-${VERSION}-${GOOS}-${GOARCH}"
+
+          go build -trimpath \
+            -ldflags "-s -w -X 'adal-cli/internal/cli.Version=${VERSION}' -X 'adal-cli/internal/cli.Commit=${COMMIT}' -X 'adal-cli/internal/cli.BuildDate=${DATE}'" \
+            -o "package/${BIN}" .
+
+          cp README.md package/ 2>/dev/null || true
+          cp LICENSE package/ 2>/dev/null || true
+
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            cd package
+            zip "../dist/${ARCHIVE}.zip" *
+          else
+            tar -czf "dist/${ARCHIVE}.tar.gz" -C package .
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: adal-cli-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare dist
+        run: |
+          mkdir -p dist
+          find artifacts -type f -maxdepth 3 -print -exec cp {} dist/ \;
+          cd dist
+          sha256sum * > checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*
