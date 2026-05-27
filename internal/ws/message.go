@@ -27,6 +27,7 @@ type Delivery struct {
 type DeliveryResult struct {
 	DeliveryId       int64                 `json:"delivery_id"`
 	DestinationId    int64                 `json:"destination_id"`
+	URL              string                `json:"url"`
 	AttemptNumber    int                   `json:"attempt_number"`
 	Status           RequestDeliveryStatus `json:"status"`
 	ResponseCode     *int                  `json:"response_code"`

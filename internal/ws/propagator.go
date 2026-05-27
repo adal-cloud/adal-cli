@@ -48,6 +48,7 @@ func (connection *Connection) requestPropagate(request Request) {
 					Status:           RequestDeliveryStatusFailed,
 					DeliveryId:       destination.Id,
 					DestinationId:    destination.DestinationId,
+					URL:              destination.URL,
 					AttemptNumber:    destination.AttemptNumber,
 					Message:          new("invalid_url"),
 					DeliveryDuration: time.Since(startAt).Microseconds(),
@@ -67,6 +68,7 @@ func (connection *Connection) requestPropagate(request Request) {
 					Status:           RequestDeliveryStatusFailed,
 					DeliveryId:       destination.Id,
 					DestinationId:    destination.DestinationId,
+					URL:              destination.URL,
 					AttemptNumber:    destination.AttemptNumber,
 					Message:          new("network_error"),
 					DeliveryDuration: time.Since(startAt).Microseconds(),
@@ -78,6 +80,7 @@ func (connection *Connection) requestPropagate(request Request) {
 			deliveryResult := DeliveryResult{
 				DeliveryId:       destination.Id,
 				DestinationId:    destination.DestinationId,
+				URL:              destination.URL,
 				AttemptNumber:    destination.AttemptNumber,
 				ResponseCode:     &resp.StatusCode,
 				DeliveryDuration: time.Since(startAt).Microseconds(),
