@@ -22,7 +22,7 @@ var runOptions = config.RunOptions{
 
 var rootOptions = config.RootOptions{
 	VerboseLevel:    config.VerboseLevelNone,
-	Version:         "0.1.0",
+	Version:         "0.1.2",
 	ControlPlaneURL: "https://cp.adal.cloud/auth/ws",
 }
 
