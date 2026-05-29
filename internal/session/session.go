@@ -47,7 +47,7 @@ func NewSession(ctx context.Context, rootOptions config.RootOptions) (*Session, 
 	request, err := http.NewRequestWithContext(reqCtx, http.MethodGet, rootOptions.ControlPlaneURL, nil)
 	if err != nil {
 		if rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
-			log.Println("Error creating request:", err)
+			log.Println("Error creating request")
 		}
 		return &Session{}, err
 	}
@@ -62,7 +62,7 @@ func NewSession(ctx context.Context, rootOptions config.RootOptions) (*Session, 
 	response, err := httpClient.Do(request)
 	if err != nil {
 		if rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
-			log.Println("Error making request:", err)
+			log.Println("Error requesting connections data")
 		}
 		return &Session{}, err
 	}
@@ -70,7 +70,7 @@ func NewSession(ctx context.Context, rootOptions config.RootOptions) (*Session, 
 		err = Body.Close()
 		if err != nil {
 			if rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
-				log.Println("Error closing body:", err)
+				log.Println("Error closing response body")
 			}
 		}
 	}(response.Body)
@@ -94,7 +94,7 @@ func NewSession(ctx context.Context, rootOptions config.RootOptions) (*Session, 
 	bodyBytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		if rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
-			log.Println("Error reading response body:", err)
+			log.Println("Error reading response body")
 		}
 		return &Session{}, err
 	}
@@ -103,7 +103,7 @@ func NewSession(ctx context.Context, rootOptions config.RootOptions) (*Session, 
 	err = json.Unmarshal(bodyBytes, &connectionData)
 	if err != nil {
 		if rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
-			log.Println("Error parsing connection data:", err)
+			log.Println("Error parsing connection data")
 		}
 		return &Session{}, err
 	}

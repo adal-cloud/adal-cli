@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -40,10 +39,9 @@ func NewWSConnection(ctx context.Context, connectionData config.ConnectionData, 
 	conn, r, err = websocket.DefaultDialer.DialContext(ctx, connectionData.ConnectionURL, headers)
 	if err != nil {
 		if r != nil {
-			var response []byte
-			response, err = io.ReadAll(r.Body)
+			response, err := io.ReadAll(r.Body)
 			if err != nil && rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
-				log.Println("Error reading response body:", err)
+				log.Println("Error reading response body")
 				log.Println("Status code: " + strconv.Itoa(r.StatusCode))
 				log.Println("Response: " + string(response))
 			}
@@ -53,7 +51,8 @@ func NewWSConnection(ctx context.Context, connectionData config.ConnectionData, 
 			}
 		}
 
-		return nil, fmt.Errorf("websocket dial error: %w", err)
+		log.Println("Error connecting to websocket")
+		return nil, err
 	}
 
 	log.Printf("Successfully connected to \"%s\" (%s, %s)", connectionData.EndpointName, connectionData.City, connectionData.Country)
@@ -111,7 +110,7 @@ func (connection *Connection) readPump() {
 	err = connection.conn.SetReadDeadline(time.Now().Add(pongWait))
 	if err != nil {
 		if connection.rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
-			log.Println("SetReadDeadline error:", err)
+			log.Println("SetReadDeadline error")
 		}
 		connection.Close()
 		return
@@ -138,7 +137,7 @@ func (connection *Connection) readPump() {
 		if err != nil {
 			// Log and terminate the read loop so we shut down cleanly instead of spinning.
 			if connection.rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
-				log.Println("Read error:", err)
+				log.Println("WebSocker read error")
 			}
 			return
 		}
@@ -155,7 +154,7 @@ func (connection *Connection) readPump() {
 		err = json.Unmarshal(msg, &request)
 		if err != nil {
 			if connection.rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
-				log.Println("Unmarshal error:", err)
+				log.Println("Bad json format")
 			}
 			continue
 		}
@@ -186,7 +185,7 @@ func (connection *Connection) writePump() {
 			err = connection.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err != nil {
 				if connection.rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
-					log.Println("SetWriteDeadline error:", err)
+					log.Println("SetWriteDeadline error")
 				}
 			}
 
@@ -195,7 +194,7 @@ func (connection *Connection) writePump() {
 				err = connection.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				if err != nil {
 					if connection.rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
-						log.Println("Write close message error:", err)
+						log.Println("Write close message error")
 					}
 				}
 				return
@@ -204,7 +203,7 @@ func (connection *Connection) writePump() {
 			err = connection.conn.WriteMessage(websocket.BinaryMessage, msg)
 			if err != nil {
 				if connection.rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
-					log.Println("Write error:", err)
+					log.Println("WebSocket write error")
 				}
 				connection.Close()
 				return
@@ -216,13 +215,13 @@ func (connection *Connection) writePump() {
 			err = connection.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err != nil {
 				if connection.rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
-					log.Println("SetWriteDeadline error:", err)
+					log.Println("SetWriteDeadline error")
 				}
 			}
 			err = connection.conn.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(writeWait))
 			if err != nil {
 				if connection.rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
-					log.Println("Ping error:", err)
+					log.Println("Ping error")
 				}
 				connection.Close()
 				return
@@ -235,7 +234,7 @@ func (connection *Connection) sendDeliveryResult(deliveryResult DeliveryResult) 
 	resultBytes, err := json.Marshal(deliveryResult)
 	if err != nil {
 		if connection.rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
-			log.Println("Marshal error:", err)
+			log.Println("Failed to marshal delivery result")
 		}
 		return
 	}
