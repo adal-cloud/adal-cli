@@ -38,7 +38,7 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		log.Println("Error:", err)
+		log.Println("Error starting CLI")
 		os.Exit(config.RunErrorExecute)
 	}
 }
@@ -83,8 +83,6 @@ func run(cmd *cobra.Command, _ []string) error {
 			if errors.Is(err, ws.ErrTooManyConnections) {
 				log.Println("Too many connections")
 				cancel()
-			} else if err != nil {
-				log.Println(err)
 			}
 		} else {
 			if errors.Is(err, session.ErrorUnauthorized) {
