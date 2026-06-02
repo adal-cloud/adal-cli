@@ -51,7 +51,6 @@ func NewWSConnection(ctx context.Context, connectionData config.ConnectionData, 
 			}
 		}
 
-		log.Println("Error connecting to websocket")
 		return nil, err
 	}
 
