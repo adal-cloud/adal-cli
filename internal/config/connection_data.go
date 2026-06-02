@@ -6,4 +6,5 @@ type ConnectionData struct {
 	EndpointName  string `json:"endpoint_name"`
 	Country       string `json:"country"`
 	City          string `json:"city"`
+	EndpointURL   string `json:"endpoint_url"`
 }
