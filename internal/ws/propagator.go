@@ -42,7 +42,7 @@ func (connection *Connection) requestPropagate(request Request) {
 		go func() {
 			defer wg.Done()
 
-			req, err := http.NewRequestWithContext(ctx, request.Method, destination.URL, bytes.NewReader(request.Body))
+			req, err := http.NewRequestWithContext(ctx, request.Method, destination.URL+request.URI, bytes.NewReader(request.Body))
 			if err != nil {
 				connection.sendDeliveryResult(DeliveryResult{
 					Status:           RequestDeliveryStatusFailed,
