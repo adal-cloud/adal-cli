@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/hex"
 	"io"
 	"log"
 	"net"
@@ -47,7 +48,7 @@ func (connection *Connection) requestPropagate(request Request) {
 				connection.sendDeliveryResult(DeliveryResult{
 					Status:           RequestDeliveryStatusFailed,
 					DeliveryId:       destination.Id,
-					DestinationId:    destination.DestinationId,
+					DestinationId:    destination.Destination.Id,
 					URL:              destination.URL,
 					AttemptNumber:    destination.AttemptNumber,
 					Message:          new("invalid_url"),
@@ -62,24 +63,39 @@ func (connection *Connection) requestPropagate(request Request) {
 				}
 			}
 
+			if destination.Destination.AddIdempotencyKey {
+				idempotencyKey := make([]byte, 36)
+				hex.Encode(idempotencyKey[0:8], request.IdempotencyKey[0:4])
+				idempotencyKey[8] = '-'
+				hex.Encode(idempotencyKey[9:13], request.IdempotencyKey[4:6])
+				idempotencyKey[13] = '-'
+				hex.Encode(idempotencyKey[14:18], request.IdempotencyKey[6:8])
+				idempotencyKey[18] = '-'
+				hex.Encode(idempotencyKey[19:23], request.IdempotencyKey[8:10])
+				idempotencyKey[23] = '-'
+				hex.Encode(idempotencyKey[24:36], request.IdempotencyKey[10:16])
+				req.Header.Add("X-Adal-Idempotency", string(idempotencyKey))
+			}
+
 			resp, err := client.Do(req)
 			if err != nil {
 				connection.sendDeliveryResult(DeliveryResult{
 					Status:           RequestDeliveryStatusFailed,
 					DeliveryId:       destination.Id,
-					DestinationId:    destination.DestinationId,
+					DestinationId:    destination.Destination.Id,
 					URL:              destination.URL,
 					AttemptNumber:    destination.AttemptNumber,
 					Message:          new("network_error"),
 					DeliveryDuration: time.Since(startAt).Microseconds(),
 				})
 				log.Println("Network error:", destination.URL)
+				log.Println(err)
 				return
 			}
 
 			deliveryResult := DeliveryResult{
 				DeliveryId:       destination.Id,
-				DestinationId:    destination.DestinationId,
+				DestinationId:    destination.Destination.Id,
 				URL:              destination.URL,
 				AttemptNumber:    destination.AttemptNumber,
 				ResponseCode:     &resp.StatusCode,
