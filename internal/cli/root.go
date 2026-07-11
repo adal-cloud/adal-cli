@@ -22,7 +22,7 @@ var runOptions = config.RunOptions{
 
 var rootOptions = config.RootOptions{
 	VerboseLevel:    config.VerboseLevelNone,
-	Version:         "0.1.5",
+	Version:         "0.1.6",
 	ControlPlaneURL: "https://cp.adal.cloud/auth/ws",
 }
 
@@ -48,7 +48,7 @@ func init() {
 
 	rootCmd.PersistentFlags().IntVar(&rootOptions.VerboseLevel, "verbose", 0, "Verbose level:\n  1 for warnings\n  2 for info\n  3 for debug")
 	rootCmd.PersistentFlags().BoolVarP(&runOptions.ShowVersion, "version", "v", false, "Print version information")
-	rootCmd.PersistentFlags().StringVarP(&rootOptions.EndpointToken, "token", "t", rootOptions.EndpointToken, "Authentication token")
+	rootCmd.PersistentFlags().StringVarP(&rootOptions.ServerToken, "token", "t", rootOptions.ServerToken, "Authentication token")
 }
 
 func run(cmd *cobra.Command, _ []string) error {
@@ -60,13 +60,13 @@ func run(cmd *cobra.Command, _ []string) error {
 		return nil
 	}
 
-	if rootOptions.EndpointToken == "" {
-		if os.Getenv("ADAL_ENDPOINT_TOKEN") != "" {
-			rootOptions.EndpointToken = os.Getenv("ADAL_ENDPOINT_TOKEN")
+	if rootOptions.ServerToken == "" {
+		if os.Getenv("ADAL_SERVER_TOKEN") != "" {
+			rootOptions.ServerToken = os.Getenv("ADAL_SERVER_TOKEN")
 		}
 	}
 
-	if rootOptions.EndpointToken == "" {
+	if rootOptions.ServerToken == "" {
 		log.Println("token is required. Use -t or --token flag to provide it")
 		os.Exit(config.RunErrorToken)
 	}

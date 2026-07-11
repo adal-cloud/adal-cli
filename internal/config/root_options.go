@@ -14,7 +14,7 @@ type RootOptions struct {
 	ControlPlaneURL string
 	VerboseLevel    int
 	Version         string
-	EndpointToken   string
+	ServerToken     string
 }
 
 type RunOptions struct {

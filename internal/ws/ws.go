@@ -54,8 +54,8 @@ func NewWSConnection(ctx context.Context, connectionData config.ConnectionData, 
 		return nil, err
 	}
 
-	log.Printf("Successfully connected to \"%s\" (%s, %s)", connectionData.EndpointName, connectionData.City, connectionData.Country)
-	log.Printf("Endpoint URL: %s", connectionData.EndpointURL)
+	log.Printf("Successfully connected to \"%s\" (%s, %s)", connectionData.ServerName, connectionData.City, connectionData.Country)
+	log.Printf("Server URL: %s", connectionData.ServerURL)
 
 	return &Connection{
 		ctx:         ctx,

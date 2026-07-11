@@ -52,7 +52,7 @@ func NewSession(ctx context.Context, rootOptions config.RootOptions) (*Session, 
 		return &Session{}, err
 	}
 
-	request.Header.Add("Authorization", "Bearer "+rootOptions.EndpointToken)
+	request.Header.Add("Authorization", "Bearer "+rootOptions.ServerToken)
 	request.Header.Add("Accept", "application/json")
 
 	if rootOptions.VerboseLevel >= config.VerboseLevelMaximum {
