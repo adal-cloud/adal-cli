@@ -3,8 +3,8 @@ package config
 type ConnectionData struct {
 	AccessToken   string `json:"access_token"`
 	ConnectionURL string `json:"connection_url"`
-	EndpointName  string `json:"endpoint_name"`
+	ServerName    string `json:"server_name"`
 	Country       string `json:"country"`
 	City          string `json:"city"`
-	EndpointURL   string `json:"endpoint_url"`
+	ServerURL     string `json:"server_url"`
 }
