@@ -2,18 +2,24 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Adal CLI, please do not create a public GitHub issue.
+If you believe you have found a security vulnerability in Adal CLI, please do not disclose it in a public GitHub issue before a fix is available.
 
-Instead, contact the maintainer directly:
+Please report it privately using GitHub’s **Report a vulnerability** feature in the repository’s Security section.
 
-- Email: hello@adal.cloud
+If private vulnerability reporting is unavailable, contact:
 
-Please include:
-- Description of the issue
-- Steps to reproduce
-- Potential impact
-- Suggested fix (if available)
+* Email: [security@adal.cloud](mailto:security@adal.cloud)
 
-I will acknowledge receipt within 7 days and work on a fix as soon as possible.
+Please include, where possible:
 
-Thank you for helping keep Adal secure.
+* A description of the vulnerability
+* Affected versions
+* Steps to reproduce
+* Potential impact
+* Any suggested remediation
+
+You should receive an acknowledgement within 7 days. Confirmed vulnerabilities will be investigated and addressed as soon as reasonably possible.
+
+After a fix is released, the vulnerability may be disclosed publicly through a GitHub Security Advisory. Reporters will be credited unless they prefer to remain anonymous.
+
+For general security improvements that do not expose an exploitable vulnerability, opening a public GitHub issue is welcome.
