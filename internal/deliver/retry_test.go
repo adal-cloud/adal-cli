@@ -192,12 +192,15 @@ func TestRestartResumesOnlyUnfinishedEndpoints(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer book.Close()
 	failed := assignmentWith(requestID(1), endpointA, 0)
 	done := assignmentWith(requestID(2), endpointB, 0)
 	store(t, book, failed)
 	store(t, book, done)
 	rec := &recorder{}
+	finished := &recorder{}
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	buf := &safeBuf{}
 	sched := NewScheduler(ctx, clock, func(_ context.Context, item journal.Assignment, endpoint journal.Endpoint) journal.Result {
 		rec.add(clock.Now(), item.RequestID)
@@ -205,13 +208,16 @@ func TestRestartResumesOnlyUnfinishedEndpoints(t *testing.T) {
 			return journal.Result{EndpointID: endpoint.ID, Outcome: journal.OutcomeSuccess, Status: 204}
 		}
 		return journal.Result{EndpointID: endpoint.ID, Outcome: journal.OutcomeFailure, Error: "timeout"}
-	}, book, nil, log.New(buf, "", 0))
+	}, book, func(requestID string, _ journal.Result, _ []byte) {
+		finished.add(clock.Now(), requestID)
+	}, log.New(buf, "", 0))
 	sched.Submit(failed)
 	sched.Submit(done)
 	waitCount(t, rec, 2)
+	// A started HTTP call may still be writing its result to the journal.
+	waitCount(t, finished, 2)
 	waitDelays(t, buf, 1)
 	cancel()
-	time.Sleep(20 * time.Millisecond)
 	if err := book.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -222,10 +228,15 @@ func TestRestartResumesOnlyUnfinishedEndpoints(t *testing.T) {
 	}
 	defer reloaded.Close()
 	again := &recorder{}
-	next, _ := loggedSched(reloaded, clock, func(_ context.Context, item journal.Assignment, endpoint journal.Endpoint) journal.Result {
+	resumedFinished := &recorder{}
+	nextCtx, nextCancel := context.WithCancel(context.Background())
+	defer nextCancel()
+	next := NewScheduler(nextCtx, clock, func(_ context.Context, item journal.Assignment, endpoint journal.Endpoint) journal.Result {
 		again.add(clock.Now(), item.RequestID)
 		return journal.Result{EndpointID: endpoint.ID, Outcome: journal.OutcomeFailure, Error: "timeout"}
-	})
+	}, reloaded, func(requestID string, _ journal.Result, _ []byte) {
+		resumedFinished.add(clock.Now(), requestID)
+	}, nil)
 	next.Resume()
 	time.Sleep(30 * time.Millisecond)
 	if again.count() != 0 {
@@ -236,11 +247,13 @@ func TestRestartResumesOnlyUnfinishedEndpoints(t *testing.T) {
 	if ids := again.idsSnapshot(); ids[0] != failed.RequestID {
 		t.Fatalf("resumed = %v", ids)
 	}
+	waitCount(t, resumedFinished, 1)
 	clock.Advance(24 * time.Hour)
 	waitCount(t, again, 2)
 	if ids := again.idsSnapshot(); ids[0] != failed.RequestID || ids[1] != failed.RequestID {
 		t.Fatalf("resumed = %v", ids)
 	}
+	waitCount(t, resumedFinished, 2)
 }
 
 func TestNonSuccessResultsRetry(t *testing.T) {

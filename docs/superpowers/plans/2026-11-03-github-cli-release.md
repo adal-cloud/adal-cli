@@ -35,3 +35,12 @@ Invalid versions and shell metacharacters; duplicate release/tag; an existing ou
 - Publication creates the tag atomically through the GitHub API before using gh release create --verify-tag --draft. A competing tag creation fails rather than releasing another commit. A failed publication may leave an unused tag or draft; recovery is documented.
 - Limits: no remote workflow, upload, tag creation, or release publication was run. Native macOS execution and ARM64 execution were not available locally. Native OS CI jobs and repository policy compatibility require the first manual GitHub run after push. Local archives contain uncommitted migration code and are verification outputs, not official releases.
 - No commits or pushes were made. The Git index remains empty.
+
+## Windows CI follow-up
+
+- Reproduced the reported TempDir cleanup failure locally with `go test ./internal/deliver -run '^TestRestartResumesOnlyUnfinishedEndpoints$' -count=100` before editing.
+- The test observed Caller entry before journal persistence and left the resumed scheduler on an uncancelled background context. Cleanup could race with a result write.
+- Changed only test synchronization: kept the original HTTP-start assertions, additionally waited for Reporter callbacks after persistence before advancing the clock or closing the journal, and cancelled both scheduler contexts. Removed the shutdown sleep. No application or workflow changes.
+- After the fix, the same Windows regression command passed all 100 repetitions. The complete test suite, vet, build, formatting, and diff checks passed on Windows. The complete test suite, vet, and build passed on Linux/WSL.
+- Independent read-only review found no substantive issue with the synchronization approach. Context cancellation still does not join an in-flight writer on an already-failing assertion path; successful test completion explicitly waits for all expected writes.
+- GitHub Actions has not been rerun. Start a new workflow run after committing and pushing; rerunning old jobs would use the old commit. No commits or pushes were made by the agent.
