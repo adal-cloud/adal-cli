@@ -1,13 +1,5 @@
-module adal-cli
+module github.com/adal-cloud/adal-cli
 
-go 1.26
+go 1.27
 
-require (
-	github.com/gorilla/websocket v1.5.3
-	github.com/spf13/cobra v1.10.2
-)
-
-require (
-	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/spf13/pflag v1.0.10 // indirect
-)
+require github.com/coder/websocket v1.8.15

@@ -1,106 +1,141 @@
-name: release
+name: Release
+run-name: ${{ inputs.publish && 'Publish' || 'Build' }} ${{ inputs.version }}
 
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (v1.2.3 or v1.2.3-rc.1)"
+        required: true
+        type: string
+      publish:
+        description: "Publish a GitHub Release after successful checks and builds"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.version }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  build:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate version and reject an existing tag
+        env:
+          VERSION: ${{ inputs.version }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          python3 scripts/build_release.py "$VERSION" --validate-only
+          if [[ "$PUBLISH" == true ]] && git show-ref --verify --quiet "refs/tags/$VERSION"; then
+            echo "::error::This version already has a tag. Choose a new version."
+            exit 1
+          fi
+
+  test:
+    needs: validate
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-            ext: ""
-            archive: tar.gz
-          - goos: linux
-            goarch: arm64
-            ext: ""
-            archive: tar.gz
-          - goos: darwin
-            goarch: amd64
-            ext: ""
-            archive: tar.gz
-          - goos: darwin
-            goarch: arm64
-            ext: ""
-            archive: tar.gz
-          - goos: windows
-            goarch: amd64
-            ext: ".exe"
-            archive: zip
-
-    runs-on: ubuntu-latest
-
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
         with:
-          go-version: "1.26.2"
-          cache: true
-
-      - name: Build
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: "0"
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Check formatting
         run: |
-          mkdir -p dist package
-          VERSION="${GITHUB_REF_NAME}"
-          COMMIT="$(git rev-parse --short HEAD)"
-          DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-
-          BIN="adal-cli${{ matrix.ext }}"
-          ARCHIVE="adal-cli-${VERSION}-${GOOS}-${GOARCH}"
-
-          go build -trimpath \
-            -ldflags "-s -w -X 'adal-cli/internal/cli.Version=${VERSION}' -X 'adal-cli/internal/cli.Commit=${COMMIT}' -X 'adal-cli/internal/cli.BuildDate=${DATE}'" \
-            -o "package/${BIN}" .
-
-          cp README.md package/ 2>/dev/null || true
-          cp LICENSE package/ 2>/dev/null || true
-
-          if [ "${{ matrix.archive }}" = "zip" ]; then
-            cd package
-            zip "../dist/${ARCHIVE}.zip" *
-          else
-            tar -czf "dist/${ARCHIVE}.tar.gz" -C package .
+          files="$(gofmt -l cmd internal)"
+          if [[ -n "$files" ]]; then
+            printf '%s\n' "$files"
+            exit 1
           fi
+      - run: go test ./...
+      - run: go vet ./...
+      - run: go build ./...
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
         with:
-          name: adal-cli-${{ matrix.goos }}-${{ matrix.goarch }}
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Test archive packaging
+        run: python3 -m unittest discover -s scripts -v
+      - name: Build six platform archives and checksums
+        env:
+          VERSION: ${{ inputs.version }}
+        run: python3 scripts/build_release.py "$VERSION"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: adal-cli-${{ inputs.version }}
           path: dist/*
+          if-no-files-found: error
+          retention-days: 14
 
-  release:
+  publish:
+    if: ${{ inputs.publish }}
     needs: build
     runs-on: ubuntu-latest
-
+    timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
         with:
-          path: artifacts
-
-      - name: Prepare dist
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: adal-cli-${{ inputs.version }}
+          path: dist
+      - name: Verify and publish the exact built commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ inputs.version }}
         run: |
-          mkdir -p dist
-          find artifacts -type f -maxdepth 3 -print -exec cp {} dist/ \;
           cd dist
-          sha256sum * > checksums.txt
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            dist/*
+          sha256sum --check checksums.txt
+          # Recheck after building: never reuse a tag created by another run.
+          git fetch origin --tags
+          if git show-ref --verify --quiet "refs/tags/$VERSION"; then
+            echo "::error::This version already has a tag. Choose a new version."
+            exit 1
+          fi
+          prerelease=()
+          if [[ "$VERSION" == *-* ]]; then
+            prerelease+=(--prerelease)
+          fi
+          # Creating the ref is atomic: a concurrent tag creation must fail.
+          gh api "repos/$GH_REPO/git/refs" \
+            -f "ref=refs/tags/$VERSION" -f "sha=$GITHUB_SHA" > /dev/null
+          printf 'Source commit: `%s`\n\nSix platform archives and SHA-256 checksums.\n' "$GITHUB_SHA" > "$RUNNER_TEMP/release-notes.md"
+          gh release create "$VERSION" ./* \
+            --verify-tag \
+            --title "Adal CLI $VERSION" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
+            --draft "${prerelease[@]}"
+          gh release edit "$VERSION" --draft=false
