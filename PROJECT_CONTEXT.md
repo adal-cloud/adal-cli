@@ -14,8 +14,6 @@ The command accepts `--host` and `--token`. It does not implement `-t`, `--verbo
 
 The client sends `hello` version `1`. Assignment, report, report acknowledgement, and error frames are version `3`. It does not change CLI Server or any other repository. It has no database. It has no message broker.
 
-Every file in this repository is English. Documentation and comments describe the behavior that exists now. They are written for a reader of this repository. A comment states an invariant, a constraint, or a failure mode that the following lines do not show. `README.md`, this file, comments, errors, and logs do not contain the agent workflow, plans, open questions, or a path outside this repository. Logs and errors do not contain the token, the request body, or request headers. A stdout block for a call shows the call address with user and password removed. Error text does not contain the call address. The report frame does not contain the call address.
-
 ## Process
 
 The default host is `wss://api.adal.cloud`. `ADAL_API_HOST` overrides the default. A blank environment value uses the default. `--host` overrides the environment. A host without a scheme gets `wss://`. An explicit `ws://` or `wss://` scheme is preserved. The host accepts an optional trailing slash. Credentials, a non-root path, query, and fragment are rejected. Local servers without TLS require an explicit `ws://` scheme.

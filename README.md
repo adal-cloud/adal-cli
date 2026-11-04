@@ -229,15 +229,3 @@ go build ./...
 ```
 
 Tests use in-process WebSocket and HTTP servers. They do not start CLI Server. They do not dial `127.0.0.1:8009`. No database, broker, or external network is required. `go test -race ./...` is not required where `gcc` is absent. The race detector is not part of the check above.
-
-## Writing
-
-This repository is open source. Write for a reader of this repository. Do not assume another Adal Cloud repository is available.
-
-This file and `PROJECT_CONTEXT.md` carry the same contract facts. Use short sentences. A sentence states one condition or one result.
-
-A comment states an invariant, a constraint, or a failure mode that the following lines do not show. A comment does not restate the next line.
-
-This file, `PROJECT_CONTEXT.md`, comments, errors, and logs do not contain the agent workflow, plans, open questions, or a path outside this repository.
-
-Logs and errors do not contain the token, the request body, or request headers. A stdout block for a call shows the call address with user and password removed. Error text does not contain the call address. The report frame does not contain the call address.
