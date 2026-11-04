@@ -24,8 +24,8 @@ func TestAPIHostSelection(t *testing.T) {
 	for _, tc := range []struct {
 		name, env, flag, want string
 	}{
-		{name: "default", want: "wss://api.adal.cloud"},
-		{name: "blank environment", env: "  ", want: "wss://api.adal.cloud"},
+		{name: "default", want: "wss://cli.adal.cloud"},
+		{name: "blank environment", env: "  ", want: "wss://cli.adal.cloud"},
 		{name: "environment", env: "  wss://api.example.test/  ", want: "wss://api.example.test/"},
 		{name: "environment without scheme", env: " api.se.adal.cloud ", want: "wss://api.se.adal.cloud"},
 		{name: "environment with explicit ws", env: "ws://api.se.adal.cloud", want: "ws://api.se.adal.cloud"},

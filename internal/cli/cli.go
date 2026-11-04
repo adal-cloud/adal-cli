@@ -18,7 +18,7 @@ const (
 	exitOK    = 0
 	exitError = 1
 
-	defaultHost = "wss://api.adal.cloud"
+	defaultHost = "wss://cli.adal.cloud"
 )
 
 var (

@@ -16,13 +16,13 @@ The client sends `hello` version `1`. Assignment, report, report acknowledgement
 
 ## Process
 
-The default host is `wss://api.adal.cloud`. `ADAL_API_HOST` overrides the default. A blank environment value uses the default. `--host` overrides the environment. A host without a scheme gets `wss://`. An explicit `ws://` or `wss://` scheme is preserved. The host accepts an optional trailing slash. Credentials, a non-root path, query, and fragment are rejected. Local servers without TLS require an explicit `ws://` scheme.
+The default host is `wss://cli.adal.cloud`. `ADAL_API_HOST` overrides the default. A blank environment value uses the default. `--host` overrides the environment. A host without a scheme gets `wss://`. An explicit `ws://` or `wss://` scheme is preserved. The host accepts an optional trailing slash. Credentials, a non-root path, query, and fragment are rejected. Local servers without TLS require an explicit `ws://` scheme.
 
 `--token` is the channel secret and is required. Surrounding whitespace is removed. A blank token prints `token is required`. A blank host flag prints `host is required`. An invalid host prints `host must be a ws:// or wss:// origin`. An extra argument prints `unexpected argument`. Those errors exit 1. Help exits 0. The token is not printed. The token never appears in errors or logs.
 
 Build the binary with `go build -o cli ./cmd/cli`.
 
-The process appends `/v1/session` to the selected host. The default session address is `wss://api.adal.cloud/v1/session`. WSS verifies the TLS certificate. `SIGINT` and `SIGTERM` cancel the process and exit 0. They do not store an ordinary failure. They do not spend an attempt. A call that already succeeded is still stored. `SIGKILL` is not handled.
+The process appends `/v1/session` to the selected host. The default session address is `wss://cli.adal.cloud/v1/session`. WSS verifies the TLS certificate. `SIGINT` and `SIGTERM` cancel the process and exit 0. They do not store an ordinary failure. They do not spend an attempt. A call that already succeeded is still stored. `SIGKILL` is not handled.
 
 There is no environment variable for the token.
 
