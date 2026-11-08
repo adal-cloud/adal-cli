@@ -275,7 +275,7 @@ func handleConnected(ctx context.Context, conn link, book *journal.Journal, work
 			emit(logf, console.Event{Title: "Assignment was not stored"})
 			return nil
 		}
-		if assignment.Version == 3 && conn != nil {
+		if (assignment.Version == 3 || assignment.Version == 4) && conn != nil {
 			ack, _ := json.Marshal(map[string]any{"type": "assignment_ack", "version": 3, "request_id": assignment.RequestID})
 			if err := conn.Write(ctx, websocket.MessageText, ack); err != nil {
 				return err

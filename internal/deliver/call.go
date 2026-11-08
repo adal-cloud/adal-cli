@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -77,6 +78,22 @@ func Call(ctx context.Context, client *http.Client, assignment journal.Assignmen
 	req.Header.Del("Content-Length")
 	req.Header.Set("Content-Length", strconv.Itoa(len(body)))
 	req.ContentLength = int64(len(body))
+	if len(assignment.Trailers) > 0 {
+		req.Trailer = make(http.Header, len(assignment.Trailers))
+		for name, values := range assignment.Trailers {
+			if endpoint.IdempotencyKey && strings.EqualFold(name, "Idempotency-Key") {
+				continue
+			}
+			req.Trailer[name] = append([]string(nil), values...)
+		}
+	}
+	if len(req.Trailer) > 0 {
+		req.Header.Del("Content-Length")
+		req.ContentLength = -1
+		req.TransferEncoding = []string{"chunked"}
+		// A non-nil body keeps HTTP/1 trailers enabled even for an empty payload.
+		req.Body = io.NopCloser(bytes.NewReader(body))
+	}
 	req.Host = req.URL.Host
 	if endpoint.IdempotencyKey {
 		req.Header.Set("Idempotency-Key", assignment.RequestID)

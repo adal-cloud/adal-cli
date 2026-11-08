@@ -3,6 +3,8 @@ package journal
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/adal-cloud/adal-cli/internal/headerwire"
 )
 
 type snapshot struct {
@@ -94,6 +96,7 @@ func (d *delivery) clone() *delivery {
 func cloneAssignment(assignment Assignment) Assignment {
 	out := assignment
 	out.Headers = cloneHeaders(assignment.Headers)
+	out.Trailers = cloneHeaders(assignment.Trailers)
 	out.Endpoints = append([]Endpoint(nil), assignment.Endpoints...)
 	return out
 }
@@ -167,15 +170,16 @@ type fileState struct {
 }
 
 type fileAssignment struct {
-	PauseReason string              `json:"pause_reason,omitempty"`
-	RequestID   string              `json:"request_id"`
-	Method      string              `json:"method"`
-	Path        string              `json:"path"`
-	Query       string              `json:"query"`
-	Headers     map[string][]string `json:"headers"`
-	Body        string              `json:"body"`
-	Endpoints   []fileEndpoint      `json:"endpoints"`
-	Deliveries  []fileDelivery      `json:"deliveries"`
+	PauseReason string            `json:"pause_reason,omitempty"`
+	RequestID   string            `json:"request_id"`
+	Method      string            `json:"method"`
+	Path        string            `json:"path"`
+	Query       string            `json:"query"`
+	Headers     headerwire.Fields `json:"headers"`
+	Trailers    headerwire.Fields `json:"trailers,omitempty"`
+	Body        string            `json:"body"`
+	Endpoints   []fileEndpoint    `json:"endpoints"`
+	Deliveries  []fileDelivery    `json:"deliveries"`
 }
 
 type fileEndpoint struct {
@@ -234,6 +238,7 @@ func (s snapshot) file() fileState {
 			Path:        current.assignment.Path,
 			Query:       current.assignment.Query,
 			Headers:     cloneHeaders(current.assignment.Headers),
+			Trailers:    cloneHeaders(current.assignment.Trailers),
 			Body:        current.assignment.Body,
 		}
 		for _, endpoint := range current.assignment.Endpoints {
@@ -286,7 +291,7 @@ func (file fileState) snapshot() snapshot {
 	for _, stored := range file.Assignments {
 		assignment := Assignment{
 			RequestID: stored.RequestID, Method: stored.Method, Path: stored.Path, Query: stored.Query,
-			Headers: cloneHeaders(stored.Headers), Body: stored.Body,
+			Headers: cloneHeaders(stored.Headers), Trailers: cloneHeaders(stored.Trailers), Body: stored.Body,
 		}
 		for _, endpoint := range stored.Endpoints {
 			assignment.Endpoints = append(assignment.Endpoints, Endpoint{

@@ -70,7 +70,7 @@ A failed attempt reservation is retried every second in the same endpoint queue.
 
 ## Session
 
-Frames are text JSON. `hello` is version `1`. Assignment, report, report acknowledgement, and error frames are version `3`. The inbound limit is 256 MiB (268435456 bytes). This limit covers the entire JSON frame, including the base64 body and endpoint metadata. It is not a limit on the decoded HTTP body. The client reads text frames. Staying in a read answers server pings.
+Frames are text JSON. `hello` is version `1`. Assignments accept versions `3` and `4`. Deploy these clients before a server starts sending assignment version `4`. Older clients reject version `4` without acknowledging it. Assignment acknowledgements, reports, report acknowledgements, and error frames remain version `3`. The inbound limit is 256 MiB (268435456 bytes). This limit covers the entire JSON frame, including the base64 body and endpoint metadata. It is not a limit on the decoded HTTP body. The client reads text frames. Staying in a read answers server pings.
 
 The first frame is:
 
@@ -93,13 +93,13 @@ A reconnect does not cancel an HTTP call that has already started. The report is
 
 ## Assignments
 
-A complete `assignment` version `3` is stored, then started:
+A complete `assignment` version `3` or `4` is stored, then started:
 
 ```json
-{"type":"assignment","version":3,"request_id":"<uuid>","received_at":"<time>","method":"POST","path":"/hook","query":"","headers":{},"trailers":{},"body":"","endpoints":[{"id":"<uuid>","url":"https://example.test/hook","delivery_interval_ms":1000,"idempotency_key":true,"enabled":true,"attempt_count":0,"state":"pending"}]}
+{"type":"assignment","version":4,"request_id":"<uuid>","received_at":"<time>","method":"POST","path":"/hook","query":"","headers":{},"trailers":{},"body":"","endpoints":[{"id":"<uuid>","url":"https://example.test/hook","delivery_interval_ms":1000,"idempotency_key":true,"enabled":true,"attempt_count":0,"state":"pending"}]}
 ```
 
-`request_id` is a canonical lowercase UUID. `received_at` is UTC `2006-01-02T15:04:05.000000Z`. `method` and `path` are non-empty. `query` may be empty. `headers` and `trailers` are objects of string arrays, not null. `body` is standard base64 or an empty string. `attempt_count` is an integer from 0 through 10. Each endpoint has a lowercase UUID version 4 `id`, a non-empty `url`, `delivery_interval_ms` greater than or equal to zero, the booleans `idempotency_key` and `enabled`, its own `attempt_count`, and `state: pending`. `deliver_backlog` and `recipients` are not on the frame. Trailers and `received_at` are required. They are not stored.
+`request_id` is a canonical lowercase UUID. `received_at` is UTC `2006-01-02T15:04:05.000000Z`. `method` and `path` are non-empty. `query` may be empty. `headers` and `trailers` are non-null objects of arrays. Version `3` accepts string values. Version `4` also accepts a byte value as an object with only a `base64` key and canonical standard base64, such as `{"base64":"/4A="}`. Text stays a string. A literal `"/4A="` stays text. Order, repeated values, and empty strings are preserved. `body` is standard base64 or an empty string. `attempt_count` is an integer from 0 through 10. Each endpoint has a lowercase UUID version 4 `id`, a non-empty `url`, `delivery_interval_ms` greater than or equal to zero, the booleans `idempotency_key` and `enabled`, its own `attempt_count`, and `state: pending`. `deliver_backlog` and `recipients` are not on the frame. Trailers and `received_at` are required. Headers and trailers are stored without changing their bytes. `received_at` is not stored.
 
 An incomplete assignment, invalid JSON, or a frame of another type is logged to stdout as `ignored frame:` plus the reason. The frame is not logged. An assignment with no enabled endpoint is stored and not called.
 
@@ -128,7 +128,7 @@ The endpoint URL is a base. The assignment path is appended with one slash. The 
 | `https://example.test/hook?x=1` | empty     | `a=1` | `https://example.test/hook?x=1&a=1`    |
 | `https://example.test`          | `/orders` | empty | `https://example.test/orders`          |
 
-`Host` is the host from that URL, including a non-default port. `Content-Length` is the decoded body size, including `0`. Assignment headers are forwarded, including repeated values. When `idempotency_key` is true, `Idempotency-Key` is `request_id`. That value replaces an incoming value. When `idempotency_key` is false, no key is added. Trailers are not sent.
+`Host` is the host from that URL, including a non-default port. `Content-Length` is the decoded body size, including `0`, when there are no trailers. Assignment headers are forwarded, including repeated values. When `idempotency_key` is true, `Idempotency-Key` is `request_id`. That value replaces an incoming header value. A trailer with that name is omitted when the option is enabled. When `idempotency_key` is false, no key is added. Trailers are sent after the body, including an empty body. With trailers, HTTP/1 uses chunked transfer and omits `Content-Length`. Header and trailer values keep their bytes and order across retries and journal restarts. Old journals without trailers remain readable.
 
 A base that is not `http` or `https` fails with `invalid url` and is not dialed. A body that is not standard base64 fails with `invalid body` and is not dialed. Both still consume one attempt.
 

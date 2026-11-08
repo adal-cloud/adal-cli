@@ -12,7 +12,7 @@ GitHub is the primary repository. Release builds and publication run manually in
 
 The command accepts `--host` and `--token`. It does not implement `-t`, `--verbose`, or `--version` from the legacy client. Use `build-info.json` to identify the downloaded release.
 
-The client sends `hello` version `1`. Assignment, report, report acknowledgement, and error frames are version `3`. It does not change CLI Server or any other repository. It has no database. It has no message broker.
+The client sends `hello` version `1`. Assignments accept versions `3` and `4`. Deploy these clients before a server starts sending assignment version `4`. Older clients reject version `4` without acknowledging it. Assignment acknowledgements, reports, report acknowledgements, and error frames remain version `3`. It does not change CLI Server or any other repository. It has no database. It has no message broker.
 
 ## Process
 
@@ -56,7 +56,7 @@ A repeated `request_id` keeps the endpoint snapshot from the first store. It doe
 
 Calls start after the assignment is stored. Only an unfinished enabled endpoint is started. An assignment with no enabled endpoint is stored and not called. A frame that is not JSON, not an assignment, or not a complete assignment is logged to stdout as `ignored frame:` plus the reason. The log does not include the frame. A failed write leaves the previous state. The assignment is not started.
 
-`request_id` is a canonical lowercase UUID. An endpoint `id` is a lowercase UUID version 4. `delivery_interval_ms` is an integer greater than or equal to zero. `received_at` is UTC `2006-01-02T15:04:05.000000Z`. `method` and `path` are non-empty. `query` may be empty. `headers` and `trailers` are objects of string arrays, not null. `attempt_count` is an integer from 0 through 10. Trailers and `received_at` are required on the frame. They are not stored. `body` is standard base64 or an empty string. The stored body remains available for later attempts.
+`request_id` is a canonical lowercase UUID. An endpoint `id` is a lowercase UUID version 4. `delivery_interval_ms` is an integer greater than or equal to zero. `received_at` is UTC `2006-01-02T15:04:05.000000Z`. `method` and `path` are non-empty. `query` may be empty. `headers` and `trailers` are non-null objects of arrays. Version `3` accepts string values. Version `4` also accepts a byte value as an object with only a `base64` key and canonical standard base64, such as `{"base64":"/4A="}`. Text stays a string. A literal `"/4A="` stays text. Order, repeated values, and empty strings are preserved. `attempt_count` is an integer from 0 through 10. Trailers and `received_at` are required on the frame. Headers and trailers are stored without changing their bytes. `received_at` is not stored. `body` is standard base64 or an empty string. The stored body remains available for later attempts.
 
 `unknown_assignment` without `attempt_id` drops the assignment. It drops pending reports for that request. It does not start calls that are still waiting. A call already inside HTTP is left to finish. Its outcome is then discarded.
 
@@ -76,7 +76,7 @@ The HTTP timeout is 30 seconds for the whole call, including reading the respons
 
 The endpoint URL is a base. A non-empty path is joined with one slash. `..` is left in place. An empty path leaves the base path unchanged. A non-empty query is appended with `&` when the base already has a query. An empty query leaves the base query unchanged. Only `http` and `https` bases are called.
 
-`Host` comes from that URL, including a non-default port. `Content-Length` is the decoded body size, including zero. Assignment headers are forwarded, including repeated values. When `idempotency_key` is true, `Idempotency-Key` is `request_id`. That value replaces an incoming value. When it is false, no key is added. Trailers are not sent.
+`Host` comes from that URL, including a non-default port. `Content-Length` is the decoded body size, including zero, when there are no trailers. Assignment headers are forwarded, including repeated values. When `idempotency_key` is true, `Idempotency-Key` is `request_id`. That value replaces an incoming header value. A trailer with that name is omitted when the option is enabled. When it is false, no key is added. Trailers are sent after the body, including an empty body. With trailers, HTTP/1 uses chunked transfer and omits `Content-Length`. Header and trailer values keep their bytes and order across retries and journal restarts. Old journals without trailers remain readable.
 
 An empty body string is an empty body. A base that is not `http` or `https` fails with `invalid url` and is not dialed. A body that is not standard base64 fails with `invalid body` and is not dialed. Both still consume one attempt.
 

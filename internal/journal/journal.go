@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"sync"
 	"time"
+
+	"github.com/adal-cloud/adal-cli/internal/headerwire"
 )
 
 const receivedAtLayout = "2006-01-02T15:04:05.000000Z"
@@ -51,6 +53,7 @@ type Assignment struct {
 	Path      string
 	Query     string
 	Headers   map[string][]string
+	Trailers  map[string][]string
 	Body      string
 	Endpoints []Endpoint
 }
@@ -121,7 +124,7 @@ func (j *Journal) commit(fn func(*snapshot) error) error {
 	return nil
 }
 
-// Parse reads an assignment frame of protocol version 3.
+// Parse reads an assignment frame of protocol versions 3 and 4.
 // Invalid JSON returns ErrInvalidJSON.
 // A non-assignment JSON value returns ErrNotAssignment.
 // A frame that is missing a required field returns ErrIncomplete.
@@ -143,7 +146,7 @@ func Parse(data []byte) (Assignment, error) {
 		}
 	}
 	var version int
-	if json.Unmarshal(raw["version"], &version) != nil || version != 3 {
+	if json.Unmarshal(raw["version"], &version) != nil || (version != 3 && version != 4) {
 		return Assignment{}, ErrIncomplete
 	}
 	var receivedAt string
@@ -174,11 +177,16 @@ func Parse(data []byte) (Assignment, error) {
 			return Assignment{}, ErrIncomplete
 		}
 	}
-	headers, err := stringMap(raw["headers"])
+	decodeFields := stringMap
+	if version == 4 {
+		decodeFields = byteMap
+	}
+	headers, err := decodeFields(raw["headers"])
 	if err != nil {
 		return Assignment{}, ErrIncomplete
 	}
-	if _, err := stringMap(raw["trailers"]); err != nil {
+	trailers, err := decodeFields(raw["trailers"])
+	if err != nil {
 		return Assignment{}, ErrIncomplete
 	}
 	var encoded []json.RawMessage
@@ -191,7 +199,7 @@ func Parse(data []byte) (Assignment, error) {
 		if err != nil {
 			return Assignment{}, ErrIncomplete
 		}
-		if version == 3 {
+		if version == 3 || version == 4 {
 			var e struct {
 				AttemptCount *int   `json:"attempt_count"`
 				State        string `json:"state"`
@@ -209,6 +217,7 @@ func Parse(data []byte) (Assignment, error) {
 		Path:      path,
 		Query:     query,
 		Headers:   headers,
+		Trailers:  trailers,
 		Body:      body,
 		Endpoints: endpoints,
 	}, nil
@@ -243,6 +252,14 @@ func parseEndpoint(data []byte) (Endpoint, error) {
 		ID: id, URL: url, DeliveryIntervalMS: interval,
 		IdempotencyKey: idempotency, Enabled: enabled,
 	}, nil
+}
+
+func byteMap(data []byte) (map[string][]string, error) {
+	var fields headerwire.Fields
+	if err := json.Unmarshal(data, &fields); err != nil || fields == nil {
+		return nil, ErrIncomplete
+	}
+	return cloneHeaders(fields), nil
 }
 
 func stringMap(data []byte) (map[string][]string, error) {
