@@ -229,3 +229,13 @@ go build ./...
 ```
 
 Tests use in-process WebSocket and HTTP servers. They do not start CLI Server. They do not dial `127.0.0.1:8009`. No database, broker, or external network is required. `go test -race ./...` is not required where `gcc` is absent. The race detector is not part of the check above.
+
+## Tunnel protocol types
+
+`internal/tunnelpb` contains generated adal.tunnel.v1 protobuf and gRPC types
+with local wire fixtures. `internal/tunnelwire` contains the generated stateless
+v1 codec. It checks the required version, identifiers, revisions, hashes, and
+frame sizes. HTTP values and raw targets retain their bytes.
+Run `go test ./internal/tunnelpb/... ./internal/tunnelwire/...` without other services.
+These types are not connected to the CLI session. Their tests do not prove an
+HTTP Tunnel connection. The existing session still uses the Inbound protocol.

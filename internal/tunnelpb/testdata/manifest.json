@@ -1,0 +1,9 @@
+{
+  "open.bin": "adal.tunnel.v1.ExecuteFrame",
+  "request-data.bin": "adal.tunnel.v1.ExecuteFrame",
+  "response-start.bin": "adal.tunnel.v1.ExecuteFrame",
+  "response-end.bin": "adal.tunnel.v1.ExecuteFrame",
+  "prepare.bin": "adal.tunnel.v1.ControlFrame",
+  "quota.bin": "adal.tunnel.v1.TunnelQuotaState",
+  "unknown-version.bin": "adal.tunnel.v1.ExecuteFrame"
+}
