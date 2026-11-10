@@ -198,3 +198,7 @@ Its first frame may already carry the server-provided session ID. Prepare keeps
 the previous snapshot available until Activate. Existing HTTP exchanges retain
 their original settings when another revision activates. Reconciliation never
 replays an HTTP call or lowers an active revision.
+A disabled or deleted tunnel closes the CLI session with a specific reason.
+These closes are terminal and do not reconnect. Enabling a tunnel requires a
+manual CLI connection with a valid token. WebSocket close reasons and typed
+SessionClosed frames use the same messages.

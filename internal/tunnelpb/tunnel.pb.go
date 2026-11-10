@@ -2270,12 +2270,14 @@ func (x *CheckSessionRequest) GetSessionId() string {
 }
 
 type VerifiedSession struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TokenId       string                 `protobuf:"bytes,1,opt,name=token_id,json=tokenId,proto3" json:"token_id,omitempty"`
-	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	Snapshot      *ConfigSnapshot        `protobuf:"bytes,3,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	TokenId            string                 `protobuf:"bytes,1,opt,name=token_id,json=tokenId,proto3" json:"token_id,omitempty"`
+	ExpiresAt          *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	Snapshot           *ConfigSnapshot        `protobuf:"bytes,3,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+	SessionEpoch       int64                  `protobuf:"varint,4,opt,name=session_epoch,json=sessionEpoch,proto3" json:"session_epoch,omitempty"`
+	SessionCloseReason SessionCloseReason     `protobuf:"varint,5,opt,name=session_close_reason,json=sessionCloseReason,proto3,enum=adal.tunnel.v1.SessionCloseReason" json:"session_close_reason,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *VerifiedSession) Reset() {
@@ -2327,6 +2329,20 @@ func (x *VerifiedSession) GetSnapshot() *ConfigSnapshot {
 		return x.Snapshot
 	}
 	return nil
+}
+
+func (x *VerifiedSession) GetSessionEpoch() int64 {
+	if x != nil {
+		return x.SessionEpoch
+	}
+	return 0
+}
+
+func (x *VerifiedSession) GetSessionCloseReason() SessionCloseReason {
+	if x != nil {
+		return x.SessionCloseReason
+	}
+	return SessionCloseReason_SESSION_CLOSE_REASON_UNSPECIFIED
 }
 
 type AccessResult struct {
@@ -3515,12 +3531,14 @@ const file_adal_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\btoken_id\x18\x01 \x01(\tR\atokenId\x12\x1b\n" +
 	"\ttunnel_id\x18\x02 \x01(\tR\btunnelId\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x03 \x01(\tR\tsessionId\"\xa3\x01\n" +
+	"session_id\x18\x03 \x01(\tR\tsessionId\"\x9e\x02\n" +
 	"\x0fVerifiedSession\x12\x19\n" +
 	"\btoken_id\x18\x01 \x01(\tR\atokenId\x129\n" +
 	"\n" +
 	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12:\n" +
-	"\bsnapshot\x18\x03 \x01(\v2\x1e.adal.tunnel.v1.ConfigSnapshotR\bsnapshot\"\x8f\x01\n" +
+	"\bsnapshot\x18\x03 \x01(\v2\x1e.adal.tunnel.v1.ConfigSnapshotR\bsnapshot\x12#\n" +
+	"\rsession_epoch\x18\x04 \x01(\x03R\fsessionEpoch\x12T\n" +
+	"\x14session_close_reason\x18\x05 \x01(\x0e2\".adal.tunnel.v1.SessionCloseReasonR\x12sessionCloseReason\"\x8f\x01\n" +
 	"\fAccessResult\x12=\n" +
 	"\bverified\x18\x01 \x01(\v2\x1f.adal.tunnel.v1.VerifiedSessionH\x00R\bverified\x126\n" +
 	"\x06denied\x18\x02 \x01(\x0e2\x1c.adal.tunnel.v1.AccessDenialH\x00R\x06deniedB\b\n" +
@@ -3811,59 +3829,60 @@ var file_adal_tunnel_v1_tunnel_proto_depIdxs = []int32{
 	5,  // 33: adal.tunnel.v1.ApplyResult.status:type_name -> adal.tunnel.v1.ApplyStatus
 	42, // 34: adal.tunnel.v1.VerifiedSession.expires_at:type_name -> google.protobuf.Timestamp
 	10, // 35: adal.tunnel.v1.VerifiedSession.snapshot:type_name -> adal.tunnel.v1.ConfigSnapshot
-	29, // 36: adal.tunnel.v1.AccessResult.verified:type_name -> adal.tunnel.v1.VerifiedSession
-	6,  // 37: adal.tunnel.v1.AccessResult.denied:type_name -> adal.tunnel.v1.AccessDenial
-	11, // 38: adal.tunnel.v1.RequestDetails.request:type_name -> adal.tunnel.v1.RequestMetadata
-	9,  // 39: adal.tunnel.v1.RequestDetails.request_trailers:type_name -> adal.tunnel.v1.Header
-	12, // 40: adal.tunnel.v1.RequestDetails.informational:type_name -> adal.tunnel.v1.ResponseMetadata
-	12, // 41: adal.tunnel.v1.RequestDetails.response:type_name -> adal.tunnel.v1.ResponseMetadata
-	9,  // 42: adal.tunnel.v1.RequestDetails.response_trailers:type_name -> adal.tunnel.v1.Header
-	8,  // 43: adal.tunnel.v1.RequestDetails.response_source:type_name -> adal.tunnel.v1.ResponseSource
-	7,  // 44: adal.tunnel.v1.RequestDetails.request_storage:type_name -> adal.tunnel.v1.StorageState
-	7,  // 45: adal.tunnel.v1.RequestDetails.response_storage:type_name -> adal.tunnel.v1.StorageState
-	2,  // 46: adal.tunnel.v1.RequestDetails.error:type_name -> adal.tunnel.v1.ErrorCode
-	42, // 47: adal.tunnel.v1.RequestDetails.received_at:type_name -> google.protobuf.Timestamp
-	42, // 48: adal.tunnel.v1.RequestDetails.delete_after:type_name -> google.protobuf.Timestamp
-	42, // 49: adal.tunnel.v1.RequestDetails.completed_at:type_name -> google.protobuf.Timestamp
-	31, // 50: adal.tunnel.v1.ReadBodyRequest.resource:type_name -> adal.tunnel.v1.ReadDetailsRequest
-	1,  // 51: adal.tunnel.v1.ReadBodyRequest.direction:type_name -> adal.tunnel.v1.Direction
-	7,  // 52: adal.tunnel.v1.BodyEnd.storage:type_name -> adal.tunnel.v1.StorageState
-	15, // 53: adal.tunnel.v1.BodyFrame.chunk:type_name -> adal.tunnel.v1.Data
-	34, // 54: adal.tunnel.v1.BodyFrame.end:type_name -> adal.tunnel.v1.BodyEnd
-	34, // 55: adal.tunnel.v1.BodyFrame.start:type_name -> adal.tunnel.v1.BodyEnd
-	42, // 56: adal.tunnel.v1.RequestSummary.received_at:type_name -> google.protobuf.Timestamp
-	42, // 57: adal.tunnel.v1.RequestSummary.completed_at:type_name -> google.protobuf.Timestamp
-	42, // 58: adal.tunnel.v1.RequestSummary.delete_after:type_name -> google.protobuf.Timestamp
-	7,  // 59: adal.tunnel.v1.RequestSummary.request_storage_state:type_name -> adal.tunnel.v1.StorageState
-	7,  // 60: adal.tunnel.v1.RequestSummary.response_storage_state:type_name -> adal.tunnel.v1.StorageState
-	8,  // 61: adal.tunnel.v1.RequestSummary.response_source:type_name -> adal.tunnel.v1.ResponseSource
-	36, // 62: adal.tunnel.v1.SummaryEvent.summary:type_name -> adal.tunnel.v1.RequestSummary
-	42, // 63: adal.tunnel.v1.TunnelQuotaState.observed_at:type_name -> google.protobuf.Timestamp
-	37, // 64: adal.tunnel.v1.TunnelJournal.ReportSummary:input_type -> adal.tunnel.v1.SummaryEvent
-	19, // 65: adal.tunnel.v1.TunnelRelay.Execute:input_type -> adal.tunnel.v1.ExecuteFrame
-	25, // 66: adal.tunnel.v1.TunnelRelay.Control:input_type -> adal.tunnel.v1.ControlFrame
-	10, // 67: adal.tunnel.v1.TunnelConfig.ApplyConfig:input_type -> adal.tunnel.v1.ConfigSnapshot
-	26, // 68: adal.tunnel.v1.TunnelConfig.ReportApplied:input_type -> adal.tunnel.v1.ApplyResult
-	27, // 69: adal.tunnel.v1.TunnelAccess.VerifyToken:input_type -> adal.tunnel.v1.VerifyTokenRequest
-	28, // 70: adal.tunnel.v1.TunnelAccess.CheckSession:input_type -> adal.tunnel.v1.CheckSessionRequest
-	31, // 71: adal.tunnel.v1.TunnelRead.ReadDetails:input_type -> adal.tunnel.v1.ReadDetailsRequest
-	33, // 72: adal.tunnel.v1.TunnelRead.ReadBody:input_type -> adal.tunnel.v1.ReadBodyRequest
-	39, // 73: adal.tunnel.v1.TunnelQuota.GetTunnelQuota:input_type -> adal.tunnel.v1.GetTunnelQuotaRequest
-	38, // 74: adal.tunnel.v1.TunnelJournal.ReportSummary:output_type -> adal.tunnel.v1.SummaryAck
-	19, // 75: adal.tunnel.v1.TunnelRelay.Execute:output_type -> adal.tunnel.v1.ExecuteFrame
-	25, // 76: adal.tunnel.v1.TunnelRelay.Control:output_type -> adal.tunnel.v1.ControlFrame
-	26, // 77: adal.tunnel.v1.TunnelConfig.ApplyConfig:output_type -> adal.tunnel.v1.ApplyResult
-	26, // 78: adal.tunnel.v1.TunnelConfig.ReportApplied:output_type -> adal.tunnel.v1.ApplyResult
-	30, // 79: adal.tunnel.v1.TunnelAccess.VerifyToken:output_type -> adal.tunnel.v1.AccessResult
-	30, // 80: adal.tunnel.v1.TunnelAccess.CheckSession:output_type -> adal.tunnel.v1.AccessResult
-	32, // 81: adal.tunnel.v1.TunnelRead.ReadDetails:output_type -> adal.tunnel.v1.RequestDetails
-	35, // 82: adal.tunnel.v1.TunnelRead.ReadBody:output_type -> adal.tunnel.v1.BodyFrame
-	40, // 83: adal.tunnel.v1.TunnelQuota.GetTunnelQuota:output_type -> adal.tunnel.v1.TunnelQuotaState
-	74, // [74:84] is the sub-list for method output_type
-	64, // [64:74] is the sub-list for method input_type
-	64, // [64:64] is the sub-list for extension type_name
-	64, // [64:64] is the sub-list for extension extendee
-	0,  // [0:64] is the sub-list for field type_name
+	4,  // 36: adal.tunnel.v1.VerifiedSession.session_close_reason:type_name -> adal.tunnel.v1.SessionCloseReason
+	29, // 37: adal.tunnel.v1.AccessResult.verified:type_name -> adal.tunnel.v1.VerifiedSession
+	6,  // 38: adal.tunnel.v1.AccessResult.denied:type_name -> adal.tunnel.v1.AccessDenial
+	11, // 39: adal.tunnel.v1.RequestDetails.request:type_name -> adal.tunnel.v1.RequestMetadata
+	9,  // 40: adal.tunnel.v1.RequestDetails.request_trailers:type_name -> adal.tunnel.v1.Header
+	12, // 41: adal.tunnel.v1.RequestDetails.informational:type_name -> adal.tunnel.v1.ResponseMetadata
+	12, // 42: adal.tunnel.v1.RequestDetails.response:type_name -> adal.tunnel.v1.ResponseMetadata
+	9,  // 43: adal.tunnel.v1.RequestDetails.response_trailers:type_name -> adal.tunnel.v1.Header
+	8,  // 44: adal.tunnel.v1.RequestDetails.response_source:type_name -> adal.tunnel.v1.ResponseSource
+	7,  // 45: adal.tunnel.v1.RequestDetails.request_storage:type_name -> adal.tunnel.v1.StorageState
+	7,  // 46: adal.tunnel.v1.RequestDetails.response_storage:type_name -> adal.tunnel.v1.StorageState
+	2,  // 47: adal.tunnel.v1.RequestDetails.error:type_name -> adal.tunnel.v1.ErrorCode
+	42, // 48: adal.tunnel.v1.RequestDetails.received_at:type_name -> google.protobuf.Timestamp
+	42, // 49: adal.tunnel.v1.RequestDetails.delete_after:type_name -> google.protobuf.Timestamp
+	42, // 50: adal.tunnel.v1.RequestDetails.completed_at:type_name -> google.protobuf.Timestamp
+	31, // 51: adal.tunnel.v1.ReadBodyRequest.resource:type_name -> adal.tunnel.v1.ReadDetailsRequest
+	1,  // 52: adal.tunnel.v1.ReadBodyRequest.direction:type_name -> adal.tunnel.v1.Direction
+	7,  // 53: adal.tunnel.v1.BodyEnd.storage:type_name -> adal.tunnel.v1.StorageState
+	15, // 54: adal.tunnel.v1.BodyFrame.chunk:type_name -> adal.tunnel.v1.Data
+	34, // 55: adal.tunnel.v1.BodyFrame.end:type_name -> adal.tunnel.v1.BodyEnd
+	34, // 56: adal.tunnel.v1.BodyFrame.start:type_name -> adal.tunnel.v1.BodyEnd
+	42, // 57: adal.tunnel.v1.RequestSummary.received_at:type_name -> google.protobuf.Timestamp
+	42, // 58: adal.tunnel.v1.RequestSummary.completed_at:type_name -> google.protobuf.Timestamp
+	42, // 59: adal.tunnel.v1.RequestSummary.delete_after:type_name -> google.protobuf.Timestamp
+	7,  // 60: adal.tunnel.v1.RequestSummary.request_storage_state:type_name -> adal.tunnel.v1.StorageState
+	7,  // 61: adal.tunnel.v1.RequestSummary.response_storage_state:type_name -> adal.tunnel.v1.StorageState
+	8,  // 62: adal.tunnel.v1.RequestSummary.response_source:type_name -> adal.tunnel.v1.ResponseSource
+	36, // 63: adal.tunnel.v1.SummaryEvent.summary:type_name -> adal.tunnel.v1.RequestSummary
+	42, // 64: adal.tunnel.v1.TunnelQuotaState.observed_at:type_name -> google.protobuf.Timestamp
+	37, // 65: adal.tunnel.v1.TunnelJournal.ReportSummary:input_type -> adal.tunnel.v1.SummaryEvent
+	19, // 66: adal.tunnel.v1.TunnelRelay.Execute:input_type -> adal.tunnel.v1.ExecuteFrame
+	25, // 67: adal.tunnel.v1.TunnelRelay.Control:input_type -> adal.tunnel.v1.ControlFrame
+	10, // 68: adal.tunnel.v1.TunnelConfig.ApplyConfig:input_type -> adal.tunnel.v1.ConfigSnapshot
+	26, // 69: adal.tunnel.v1.TunnelConfig.ReportApplied:input_type -> adal.tunnel.v1.ApplyResult
+	27, // 70: adal.tunnel.v1.TunnelAccess.VerifyToken:input_type -> adal.tunnel.v1.VerifyTokenRequest
+	28, // 71: adal.tunnel.v1.TunnelAccess.CheckSession:input_type -> adal.tunnel.v1.CheckSessionRequest
+	31, // 72: adal.tunnel.v1.TunnelRead.ReadDetails:input_type -> adal.tunnel.v1.ReadDetailsRequest
+	33, // 73: adal.tunnel.v1.TunnelRead.ReadBody:input_type -> adal.tunnel.v1.ReadBodyRequest
+	39, // 74: adal.tunnel.v1.TunnelQuota.GetTunnelQuota:input_type -> adal.tunnel.v1.GetTunnelQuotaRequest
+	38, // 75: adal.tunnel.v1.TunnelJournal.ReportSummary:output_type -> adal.tunnel.v1.SummaryAck
+	19, // 76: adal.tunnel.v1.TunnelRelay.Execute:output_type -> adal.tunnel.v1.ExecuteFrame
+	25, // 77: adal.tunnel.v1.TunnelRelay.Control:output_type -> adal.tunnel.v1.ControlFrame
+	26, // 78: adal.tunnel.v1.TunnelConfig.ApplyConfig:output_type -> adal.tunnel.v1.ApplyResult
+	26, // 79: adal.tunnel.v1.TunnelConfig.ReportApplied:output_type -> adal.tunnel.v1.ApplyResult
+	30, // 80: adal.tunnel.v1.TunnelAccess.VerifyToken:output_type -> adal.tunnel.v1.AccessResult
+	30, // 81: adal.tunnel.v1.TunnelAccess.CheckSession:output_type -> adal.tunnel.v1.AccessResult
+	32, // 82: adal.tunnel.v1.TunnelRead.ReadDetails:output_type -> adal.tunnel.v1.RequestDetails
+	35, // 83: adal.tunnel.v1.TunnelRead.ReadBody:output_type -> adal.tunnel.v1.BodyFrame
+	40, // 84: adal.tunnel.v1.TunnelQuota.GetTunnelQuota:output_type -> adal.tunnel.v1.TunnelQuotaState
+	75, // [75:85] is the sub-list for method output_type
+	65, // [65:75] is the sub-list for method input_type
+	65, // [65:65] is the sub-list for extension type_name
+	65, // [65:65] is the sub-list for extension extendee
+	0,  // [0:65] is the sub-list for field type_name
 }
 
 func init() { file_adal_tunnel_v1_tunnel_proto_init() }

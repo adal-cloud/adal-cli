@@ -56,6 +56,17 @@ func fatalClose(err error) error {
 	case 4001:
 		return errors.New("Token is invalid")
 	case 4003:
+		var closed websocket.CloseError
+		if errors.As(err, &closed) {
+			switch closed.Reason {
+			case "tunnel_disabled":
+				return errors.New("Tunnel is disabled")
+			case "tunnel_deleted":
+				return errors.New("Tunnel is deleted")
+			case "access_disabled":
+				return errors.New("Access is disabled")
+			}
+		}
 		return errors.New("Tunnel access is disabled")
 	case 4005:
 		return errors.New("CLI upgrade is required")
