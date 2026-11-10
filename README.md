@@ -237,5 +237,32 @@ with local wire fixtures. `internal/tunnelwire` contains the generated stateless
 v1 codec. It checks the required version, identifiers, revisions, hashes, and
 frame sizes. HTTP values and raw targets retain their bytes.
 Run `go test ./internal/tunnelpb/... ./internal/tunnelwire/...` without other services.
-These types are not connected to the CLI session. Their tests do not prove an
-HTTP Tunnel connection. The existing session still uses the Inbound protocol.
+
+## HTTP Tunnel
+
+A 32-character CLI token with `t` in position eight selects HTTP Tunnel before
+opening an Inbound journal. The hello advertises `http_tunnel_v1`. Tunnel uses
+binary adal.tunnel.v1 frames on the same session URL. A token with `i` in that
+position uses Inbound. The Inbound sections above describe its own behavior.
+
+Prepare validates an immutable endpoint snapshot. Activate selects it for new
+requests. An active exchange retains its original endpoint and timeout. HTTP
+starts after OpenAck is written. There is no journal, HTTP retry, or replay.
+Disconnecting cancels active HTTP calls. Temporary session failures reconnect
+with exponential delay from one to ten seconds and bounded jitter. A session
+that lasts at least sixty seconds resets that delay. Ping and Pong use ten-second
+intervals and deadlines. Invalid tokens and disabled access stop reconnecting.
+
+The executor streams both directions independently. Request and response windows
+are 256 KiB each. Data chunks are at most 64 KiB and frames at most 128 KiB.
+At most 64 exchanges run locally, also limited by the active snapshot. Each
+exchange reserves bounded buffers; a full window never blocks the socket reader.
+Endpoint connections use fresh HTTP/1.1 connections with verified TLS. Redirects,
+proxy environment settings, automatic decompression, and hidden HTTP retries are
+disabled. Host and TLS SNI come from the configured endpoint. Escaped path,
+query, compressed body bytes, repeated headers, and byte values are preserved.
+Hop-by-hop fields are removed and forwarding fields come from trusted metadata.
+Informational responses and an early final response do not wait for upload EOF.
+
+Run `go test ./internal/tunnel ./internal/session` for local HTTP and WebSocket
+fixtures. These tests require no external service, database, or broker.

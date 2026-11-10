@@ -15,6 +15,7 @@ import (
 	"github.com/adal-cloud/adal-cli/internal/console"
 	"github.com/adal-cloud/adal-cli/internal/deliver"
 	"github.com/adal-cloud/adal-cli/internal/journal"
+	"github.com/adal-cloud/adal-cli/internal/tunnel"
 )
 
 // socket writes a report to the connection that is open now.
@@ -51,6 +52,13 @@ const (
 // Close codes 1001 and 4002 wait one second and try again.
 // Close 4001 does not connect again.
 func Run(ctx context.Context, host, token string, stdout io.Writer) error {
+	if len(token) == 32 && token[7] == 't' {
+		address, err := URL(host)
+		if err != nil {
+			return err
+		}
+		return tunnel.Run(ctx, address, token, stdout)
+	}
 	if stdout == nil {
 		stdout = io.Discard
 	}
