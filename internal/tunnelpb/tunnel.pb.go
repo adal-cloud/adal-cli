@@ -2412,13 +2412,14 @@ func (*AccessResult_Verified) isAccessResult_Result() {}
 func (*AccessResult_Denied) isAccessResult_Result() {}
 
 type ReadDetailsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OwnerId       string                 `protobuf:"bytes,1,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
-	TunnelId      string                 `protobuf:"bytes,2,opt,name=tunnel_id,json=tunnelId,proto3" json:"tunnel_id,omitempty"`
-	RegionId      string                 `protobuf:"bytes,3,opt,name=region_id,json=regionId,proto3" json:"region_id,omitempty"`
-	RequestId     string                 `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	OwnerId         string                 `protobuf:"bytes,1,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	TunnelId        string                 `protobuf:"bytes,2,opt,name=tunnel_id,json=tunnelId,proto3" json:"tunnel_id,omitempty"`
+	RegionId        string                 `protobuf:"bytes,3,opt,name=region_id,json=regionId,proto3" json:"region_id,omitempty"`
+	RequestId       string                 `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	DetailsRevision int64                  `protobuf:"varint,5,opt,name=details_revision,json=detailsRevision,proto3" json:"details_revision,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ReadDetailsRequest) Reset() {
@@ -2479,29 +2480,41 @@ func (x *ReadDetailsRequest) GetRequestId() string {
 	return ""
 }
 
+func (x *ReadDetailsRequest) GetDetailsRevision() int64 {
+	if x != nil {
+		return x.DetailsRevision
+	}
+	return 0
+}
+
 type RequestDetails struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	RequestId        string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	DetailsRevision  int64                  `protobuf:"varint,2,opt,name=details_revision,json=detailsRevision,proto3" json:"details_revision,omitempty"`
-	Request          *RequestMetadata       `protobuf:"bytes,3,opt,name=request,proto3" json:"request,omitempty"`
-	RequestTrailers  []*Header              `protobuf:"bytes,4,rep,name=request_trailers,json=requestTrailers,proto3" json:"request_trailers,omitempty"`
-	EndpointUrl      string                 `protobuf:"bytes,5,opt,name=endpoint_url,json=endpointUrl,proto3" json:"endpoint_url,omitempty"`
-	ConfigRevision   int64                  `protobuf:"varint,6,opt,name=config_revision,json=configRevision,proto3" json:"config_revision,omitempty"`
-	Informational    []*ResponseMetadata    `protobuf:"bytes,7,rep,name=informational,proto3" json:"informational,omitempty"`
-	Response         *ResponseMetadata      `protobuf:"bytes,8,opt,name=response,proto3" json:"response,omitempty"`
-	ResponseTrailers []*Header              `protobuf:"bytes,9,rep,name=response_trailers,json=responseTrailers,proto3" json:"response_trailers,omitempty"`
-	ResponseSource   ResponseSource         `protobuf:"varint,10,opt,name=response_source,json=responseSource,proto3,enum=adal.tunnel.v1.ResponseSource" json:"response_source,omitempty"`
-	RequestStorage   StorageState           `protobuf:"varint,11,opt,name=request_storage,json=requestStorage,proto3,enum=adal.tunnel.v1.StorageState" json:"request_storage,omitempty"`
-	ResponseStorage  StorageState           `protobuf:"varint,12,opt,name=response_storage,json=responseStorage,proto3,enum=adal.tunnel.v1.StorageState" json:"response_storage,omitempty"`
-	RequestComplete  bool                   `protobuf:"varint,13,opt,name=request_complete,json=requestComplete,proto3" json:"request_complete,omitempty"`
-	ResponseComplete bool                   `protobuf:"varint,14,opt,name=response_complete,json=responseComplete,proto3" json:"response_complete,omitempty"`
-	RequestBytes     int64                  `protobuf:"varint,15,opt,name=request_bytes,json=requestBytes,proto3" json:"request_bytes,omitempty"`
-	ResponseBytes    int64                  `protobuf:"varint,16,opt,name=response_bytes,json=responseBytes,proto3" json:"response_bytes,omitempty"`
-	Error            ErrorCode              `protobuf:"varint,17,opt,name=error,proto3,enum=adal.tunnel.v1.ErrorCode" json:"error,omitempty"`
-	ReceivedAt       *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=received_at,json=receivedAt,proto3" json:"received_at,omitempty"`
-	DeleteAfter      *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=delete_after,json=deleteAfter,proto3" json:"delete_after,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	RequestId         string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	DetailsRevision   int64                  `protobuf:"varint,2,opt,name=details_revision,json=detailsRevision,proto3" json:"details_revision,omitempty"`
+	Request           *RequestMetadata       `protobuf:"bytes,3,opt,name=request,proto3" json:"request,omitempty"`
+	RequestTrailers   []*Header              `protobuf:"bytes,4,rep,name=request_trailers,json=requestTrailers,proto3" json:"request_trailers,omitempty"`
+	EndpointUrl       string                 `protobuf:"bytes,5,opt,name=endpoint_url,json=endpointUrl,proto3" json:"endpoint_url,omitempty"`
+	ConfigRevision    int64                  `protobuf:"varint,6,opt,name=config_revision,json=configRevision,proto3" json:"config_revision,omitempty"`
+	Informational     []*ResponseMetadata    `protobuf:"bytes,7,rep,name=informational,proto3" json:"informational,omitempty"`
+	Response          *ResponseMetadata      `protobuf:"bytes,8,opt,name=response,proto3" json:"response,omitempty"`
+	ResponseTrailers  []*Header              `protobuf:"bytes,9,rep,name=response_trailers,json=responseTrailers,proto3" json:"response_trailers,omitempty"`
+	ResponseSource    ResponseSource         `protobuf:"varint,10,opt,name=response_source,json=responseSource,proto3,enum=adal.tunnel.v1.ResponseSource" json:"response_source,omitempty"`
+	RequestStorage    StorageState           `protobuf:"varint,11,opt,name=request_storage,json=requestStorage,proto3,enum=adal.tunnel.v1.StorageState" json:"request_storage,omitempty"`
+	ResponseStorage   StorageState           `protobuf:"varint,12,opt,name=response_storage,json=responseStorage,proto3,enum=adal.tunnel.v1.StorageState" json:"response_storage,omitempty"`
+	RequestComplete   bool                   `protobuf:"varint,13,opt,name=request_complete,json=requestComplete,proto3" json:"request_complete,omitempty"`
+	ResponseComplete  bool                   `protobuf:"varint,14,opt,name=response_complete,json=responseComplete,proto3" json:"response_complete,omitempty"`
+	RequestBytes      int64                  `protobuf:"varint,15,opt,name=request_bytes,json=requestBytes,proto3" json:"request_bytes,omitempty"`
+	ResponseBytes     int64                  `protobuf:"varint,16,opt,name=response_bytes,json=responseBytes,proto3" json:"response_bytes,omitempty"`
+	Error             ErrorCode              `protobuf:"varint,17,opt,name=error,proto3,enum=adal.tunnel.v1.ErrorCode" json:"error,omitempty"`
+	ReceivedAt        *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=received_at,json=receivedAt,proto3" json:"received_at,omitempty"`
+	DeleteAfter       *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=delete_after,json=deleteAfter,proto3" json:"delete_after,omitempty"`
+	TransferErrorCode string                 `protobuf:"bytes,20,opt,name=transfer_error_code,json=transferErrorCode,proto3" json:"transfer_error_code,omitempty"`
+	HttpStatus        uint32                 `protobuf:"varint,21,opt,name=http_status,json=httpStatus,proto3" json:"http_status,omitempty"`
+	CompletedAt       *timestamppb.Timestamp `protobuf:"bytes,22,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	DurationMicros    int64                  `protobuf:"varint,23,opt,name=duration_micros,json=durationMicros,proto3" json:"duration_micros,omitempty"`
+	TransferComplete  bool                   `protobuf:"varint,24,opt,name=transfer_complete,json=transferComplete,proto3" json:"transfer_complete,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *RequestDetails) Reset() {
@@ -2667,6 +2680,41 @@ func (x *RequestDetails) GetDeleteAfter() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *RequestDetails) GetTransferErrorCode() string {
+	if x != nil {
+		return x.TransferErrorCode
+	}
+	return ""
+}
+
+func (x *RequestDetails) GetHttpStatus() uint32 {
+	if x != nil {
+		return x.HttpStatus
+	}
+	return 0
+}
+
+func (x *RequestDetails) GetCompletedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CompletedAt
+	}
+	return nil
+}
+
+func (x *RequestDetails) GetDurationMicros() int64 {
+	if x != nil {
+		return x.DurationMicros
+	}
+	return 0
+}
+
+func (x *RequestDetails) GetTransferComplete() bool {
+	if x != nil {
+		return x.TransferComplete
+	}
+	return false
+}
+
 type ReadBodyRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Resource        *ReadDetailsRequest    `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
@@ -2786,6 +2834,7 @@ type BodyFrame struct {
 	//
 	//	*BodyFrame_Chunk
 	//	*BodyFrame_End
+	//	*BodyFrame_Start
 	Payload       isBodyFrame_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2853,6 +2902,15 @@ func (x *BodyFrame) GetEnd() *BodyEnd {
 	return nil
 }
 
+func (x *BodyFrame) GetStart() *BodyEnd {
+	if x != nil {
+		if x, ok := x.Payload.(*BodyFrame_Start); ok {
+			return x.Start
+		}
+	}
+	return nil
+}
+
 type isBodyFrame_Payload interface {
 	isBodyFrame_Payload()
 }
@@ -2865,9 +2923,339 @@ type BodyFrame_End struct {
 	End *BodyEnd `protobuf:"bytes,3,opt,name=end,proto3,oneof"`
 }
 
+type BodyFrame_Start struct {
+	Start *BodyEnd `protobuf:"bytes,4,opt,name=start,proto3,oneof"`
+}
+
 func (*BodyFrame_Chunk) isBodyFrame_Payload() {}
 
 func (*BodyFrame_End) isBodyFrame_Payload() {}
+
+func (*BodyFrame_Start) isBodyFrame_Payload() {}
+
+type RequestSummary struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	RequestId            string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	OwnerId              string                 `protobuf:"bytes,2,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	TunnelId             string                 `protobuf:"bytes,3,opt,name=tunnel_id,json=tunnelId,proto3" json:"tunnel_id,omitempty"`
+	RegionId             string                 `protobuf:"bytes,4,opt,name=region_id,json=regionId,proto3" json:"region_id,omitempty"`
+	BootId               string                 `protobuf:"bytes,5,opt,name=boot_id,json=bootId,proto3" json:"boot_id,omitempty"`
+	ReceivedAt           *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=received_at,json=receivedAt,proto3" json:"received_at,omitempty"`
+	CompletedAt          *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	DeleteAfter          *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=delete_after,json=deleteAfter,proto3" json:"delete_after,omitempty"`
+	ConfigRevision       int64                  `protobuf:"varint,9,opt,name=config_revision,json=configRevision,proto3" json:"config_revision,omitempty"`
+	SummaryRevision      int64                  `protobuf:"varint,10,opt,name=summary_revision,json=summaryRevision,proto3" json:"summary_revision,omitempty"`
+	DurationMicros       int64                  `protobuf:"varint,11,opt,name=duration_micros,json=durationMicros,proto3" json:"duration_micros,omitempty"`
+	Status               uint32                 `protobuf:"varint,12,opt,name=status,proto3" json:"status,omitempty"`
+	ErrorCode            string                 `protobuf:"bytes,13,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
+	RequestBytes         int64                  `protobuf:"varint,14,opt,name=request_bytes,json=requestBytes,proto3" json:"request_bytes,omitempty"`
+	ResponseBytes        int64                  `protobuf:"varint,15,opt,name=response_bytes,json=responseBytes,proto3" json:"response_bytes,omitempty"`
+	RequestComplete      bool                   `protobuf:"varint,16,opt,name=request_complete,json=requestComplete,proto3" json:"request_complete,omitempty"`
+	ResponseComplete     bool                   `protobuf:"varint,17,opt,name=response_complete,json=responseComplete,proto3" json:"response_complete,omitempty"`
+	TransferComplete     bool                   `protobuf:"varint,18,opt,name=transfer_complete,json=transferComplete,proto3" json:"transfer_complete,omitempty"`
+	RequestStorageState  StorageState           `protobuf:"varint,19,opt,name=request_storage_state,json=requestStorageState,proto3,enum=adal.tunnel.v1.StorageState" json:"request_storage_state,omitempty"`
+	ResponseStorageState StorageState           `protobuf:"varint,20,opt,name=response_storage_state,json=responseStorageState,proto3,enum=adal.tunnel.v1.StorageState" json:"response_storage_state,omitempty"`
+	ResponseSource       ResponseSource         `protobuf:"varint,21,opt,name=response_source,json=responseSource,proto3,enum=adal.tunnel.v1.ResponseSource" json:"response_source,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *RequestSummary) Reset() {
+	*x = RequestSummary{}
+	mi := &file_adal_tunnel_v1_tunnel_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestSummary) ProtoMessage() {}
+
+func (x *RequestSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_adal_tunnel_v1_tunnel_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestSummary.ProtoReflect.Descriptor instead.
+func (*RequestSummary) Descriptor() ([]byte, []int) {
+	return file_adal_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *RequestSummary) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *RequestSummary) GetOwnerId() string {
+	if x != nil {
+		return x.OwnerId
+	}
+	return ""
+}
+
+func (x *RequestSummary) GetTunnelId() string {
+	if x != nil {
+		return x.TunnelId
+	}
+	return ""
+}
+
+func (x *RequestSummary) GetRegionId() string {
+	if x != nil {
+		return x.RegionId
+	}
+	return ""
+}
+
+func (x *RequestSummary) GetBootId() string {
+	if x != nil {
+		return x.BootId
+	}
+	return ""
+}
+
+func (x *RequestSummary) GetReceivedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ReceivedAt
+	}
+	return nil
+}
+
+func (x *RequestSummary) GetCompletedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CompletedAt
+	}
+	return nil
+}
+
+func (x *RequestSummary) GetDeleteAfter() *timestamppb.Timestamp {
+	if x != nil {
+		return x.DeleteAfter
+	}
+	return nil
+}
+
+func (x *RequestSummary) GetConfigRevision() int64 {
+	if x != nil {
+		return x.ConfigRevision
+	}
+	return 0
+}
+
+func (x *RequestSummary) GetSummaryRevision() int64 {
+	if x != nil {
+		return x.SummaryRevision
+	}
+	return 0
+}
+
+func (x *RequestSummary) GetDurationMicros() int64 {
+	if x != nil {
+		return x.DurationMicros
+	}
+	return 0
+}
+
+func (x *RequestSummary) GetStatus() uint32 {
+	if x != nil {
+		return x.Status
+	}
+	return 0
+}
+
+func (x *RequestSummary) GetErrorCode() string {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return ""
+}
+
+func (x *RequestSummary) GetRequestBytes() int64 {
+	if x != nil {
+		return x.RequestBytes
+	}
+	return 0
+}
+
+func (x *RequestSummary) GetResponseBytes() int64 {
+	if x != nil {
+		return x.ResponseBytes
+	}
+	return 0
+}
+
+func (x *RequestSummary) GetRequestComplete() bool {
+	if x != nil {
+		return x.RequestComplete
+	}
+	return false
+}
+
+func (x *RequestSummary) GetResponseComplete() bool {
+	if x != nil {
+		return x.ResponseComplete
+	}
+	return false
+}
+
+func (x *RequestSummary) GetTransferComplete() bool {
+	if x != nil {
+		return x.TransferComplete
+	}
+	return false
+}
+
+func (x *RequestSummary) GetRequestStorageState() StorageState {
+	if x != nil {
+		return x.RequestStorageState
+	}
+	return StorageState_STORAGE_STATE_UNSPECIFIED
+}
+
+func (x *RequestSummary) GetResponseStorageState() StorageState {
+	if x != nil {
+		return x.ResponseStorageState
+	}
+	return StorageState_STORAGE_STATE_UNSPECIFIED
+}
+
+func (x *RequestSummary) GetResponseSource() ResponseSource {
+	if x != nil {
+		return x.ResponseSource
+	}
+	return ResponseSource_RESPONSE_SOURCE_UNSPECIFIED
+}
+
+type SummaryEvent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	Summary       *RequestSummary        `protobuf:"bytes,2,opt,name=summary,proto3" json:"summary,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SummaryEvent) Reset() {
+	*x = SummaryEvent{}
+	mi := &file_adal_tunnel_v1_tunnel_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SummaryEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SummaryEvent) ProtoMessage() {}
+
+func (x *SummaryEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_adal_tunnel_v1_tunnel_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SummaryEvent.ProtoReflect.Descriptor instead.
+func (*SummaryEvent) Descriptor() ([]byte, []int) {
+	return file_adal_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *SummaryEvent) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *SummaryEvent) GetSummary() *RequestSummary {
+	if x != nil {
+		return x.Summary
+	}
+	return nil
+}
+
+type SummaryAck struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	EventId         string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	RequestId       string                 `protobuf:"bytes,2,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	SummaryRevision int64                  `protobuf:"varint,3,opt,name=summary_revision,json=summaryRevision,proto3" json:"summary_revision,omitempty"`
+	SummaryHash     []byte                 `protobuf:"bytes,4,opt,name=summary_hash,json=summaryHash,proto3" json:"summary_hash,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *SummaryAck) Reset() {
+	*x = SummaryAck{}
+	mi := &file_adal_tunnel_v1_tunnel_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SummaryAck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SummaryAck) ProtoMessage() {}
+
+func (x *SummaryAck) ProtoReflect() protoreflect.Message {
+	mi := &file_adal_tunnel_v1_tunnel_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SummaryAck.ProtoReflect.Descriptor instead.
+func (*SummaryAck) Descriptor() ([]byte, []int) {
+	return file_adal_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *SummaryAck) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *SummaryAck) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *SummaryAck) GetSummaryRevision() int64 {
+	if x != nil {
+		return x.SummaryRevision
+	}
+	return 0
+}
+
+func (x *SummaryAck) GetSummaryHash() []byte {
+	if x != nil {
+		return x.SummaryHash
+	}
+	return nil
+}
 
 type GetTunnelQuotaRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -2878,7 +3266,7 @@ type GetTunnelQuotaRequest struct {
 
 func (x *GetTunnelQuotaRequest) Reset() {
 	*x = GetTunnelQuotaRequest{}
-	mi := &file_adal_tunnel_v1_tunnel_proto_msgTypes[27]
+	mi := &file_adal_tunnel_v1_tunnel_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2890,7 +3278,7 @@ func (x *GetTunnelQuotaRequest) String() string {
 func (*GetTunnelQuotaRequest) ProtoMessage() {}
 
 func (x *GetTunnelQuotaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_adal_tunnel_v1_tunnel_proto_msgTypes[27]
+	mi := &file_adal_tunnel_v1_tunnel_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2903,7 +3291,7 @@ func (x *GetTunnelQuotaRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTunnelQuotaRequest.ProtoReflect.Descriptor instead.
 func (*GetTunnelQuotaRequest) Descriptor() ([]byte, []int) {
-	return file_adal_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{27}
+	return file_adal_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetTunnelQuotaRequest) GetUserId() string {
@@ -2925,7 +3313,7 @@ type TunnelQuotaState struct {
 
 func (x *TunnelQuotaState) Reset() {
 	*x = TunnelQuotaState{}
-	mi := &file_adal_tunnel_v1_tunnel_proto_msgTypes[28]
+	mi := &file_adal_tunnel_v1_tunnel_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2937,7 +3325,7 @@ func (x *TunnelQuotaState) String() string {
 func (*TunnelQuotaState) ProtoMessage() {}
 
 func (x *TunnelQuotaState) ProtoReflect() protoreflect.Message {
-	mi := &file_adal_tunnel_v1_tunnel_proto_msgTypes[28]
+	mi := &file_adal_tunnel_v1_tunnel_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2950,7 +3338,7 @@ func (x *TunnelQuotaState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TunnelQuotaState.ProtoReflect.Descriptor instead.
 func (*TunnelQuotaState) Descriptor() ([]byte, []int) {
-	return file_adal_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{28}
+	return file_adal_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *TunnelQuotaState) GetKnown() bool {
@@ -3136,13 +3524,14 @@ const file_adal_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\fAccessResult\x12=\n" +
 	"\bverified\x18\x01 \x01(\v2\x1f.adal.tunnel.v1.VerifiedSessionH\x00R\bverified\x126\n" +
 	"\x06denied\x18\x02 \x01(\x0e2\x1c.adal.tunnel.v1.AccessDenialH\x00R\x06deniedB\b\n" +
-	"\x06result\"\x88\x01\n" +
+	"\x06result\"\xb3\x01\n" +
 	"\x12ReadDetailsRequest\x12\x19\n" +
 	"\bowner_id\x18\x01 \x01(\tR\aownerId\x12\x1b\n" +
 	"\ttunnel_id\x18\x02 \x01(\tR\btunnelId\x12\x1b\n" +
 	"\tregion_id\x18\x03 \x01(\tR\bregionId\x12\x1d\n" +
 	"\n" +
-	"request_id\x18\x04 \x01(\tR\trequestId\"\x99\b\n" +
+	"request_id\x18\x04 \x01(\tR\trequestId\x12)\n" +
+	"\x10details_revision\x18\x05 \x01(\x03R\x0fdetailsRevision\"\xff\t\n" +
 	"\x0eRequestDetails\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12)\n" +
@@ -3165,19 +3554,62 @@ const file_adal_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\x05error\x18\x11 \x01(\x0e2\x19.adal.tunnel.v1.ErrorCodeR\x05error\x12;\n" +
 	"\vreceived_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"receivedAt\x12=\n" +
-	"\fdelete_after\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\vdeleteAfter\"\xb5\x01\n" +
+	"\fdelete_after\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\vdeleteAfter\x12.\n" +
+	"\x13transfer_error_code\x18\x14 \x01(\tR\x11transferErrorCode\x12\x1f\n" +
+	"\vhttp_status\x18\x15 \x01(\rR\n" +
+	"httpStatus\x12=\n" +
+	"\fcompleted_at\x18\x16 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12'\n" +
+	"\x0fduration_micros\x18\x17 \x01(\x03R\x0edurationMicros\x12+\n" +
+	"\x11transfer_complete\x18\x18 \x01(\bR\x10transferComplete\"\xb5\x01\n" +
 	"\x0fReadBodyRequest\x12>\n" +
 	"\bresource\x18\x01 \x01(\v2\".adal.tunnel.v1.ReadDetailsRequestR\bresource\x12)\n" +
 	"\x10details_revision\x18\x02 \x01(\x03R\x0fdetailsRevision\x127\n" +
 	"\tdirection\x18\x03 \x01(\x0e2\x19.adal.tunnel.v1.DirectionR\tdirection\"]\n" +
 	"\aBodyEnd\x126\n" +
 	"\astorage\x18\x01 \x01(\x0e2\x1c.adal.tunnel.v1.StorageStateR\astorage\x12\x1a\n" +
-	"\bcomplete\x18\x02 \x01(\bR\bcomplete\"\x9c\x01\n" +
+	"\bcomplete\x18\x02 \x01(\bR\bcomplete\"\xcd\x01\n" +
 	"\tBodyFrame\x12)\n" +
 	"\x10details_revision\x18\x01 \x01(\x03R\x0fdetailsRevision\x12,\n" +
 	"\x05chunk\x18\x02 \x01(\v2\x14.adal.tunnel.v1.DataH\x00R\x05chunk\x12+\n" +
-	"\x03end\x18\x03 \x01(\v2\x17.adal.tunnel.v1.BodyEndH\x00R\x03endB\t\n" +
-	"\apayload\"0\n" +
+	"\x03end\x18\x03 \x01(\v2\x17.adal.tunnel.v1.BodyEndH\x00R\x03end\x12/\n" +
+	"\x05start\x18\x04 \x01(\v2\x17.adal.tunnel.v1.BodyEndH\x00R\x05startB\t\n" +
+	"\apayload\"\xcc\a\n" +
+	"\x0eRequestSummary\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12\x19\n" +
+	"\bowner_id\x18\x02 \x01(\tR\aownerId\x12\x1b\n" +
+	"\ttunnel_id\x18\x03 \x01(\tR\btunnelId\x12\x1b\n" +
+	"\tregion_id\x18\x04 \x01(\tR\bregionId\x12\x17\n" +
+	"\aboot_id\x18\x05 \x01(\tR\x06bootId\x12;\n" +
+	"\vreceived_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"receivedAt\x12=\n" +
+	"\fcompleted_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12=\n" +
+	"\fdelete_after\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\vdeleteAfter\x12'\n" +
+	"\x0fconfig_revision\x18\t \x01(\x03R\x0econfigRevision\x12)\n" +
+	"\x10summary_revision\x18\n" +
+	" \x01(\x03R\x0fsummaryRevision\x12'\n" +
+	"\x0fduration_micros\x18\v \x01(\x03R\x0edurationMicros\x12\x16\n" +
+	"\x06status\x18\f \x01(\rR\x06status\x12\x1d\n" +
+	"\n" +
+	"error_code\x18\r \x01(\tR\terrorCode\x12#\n" +
+	"\rrequest_bytes\x18\x0e \x01(\x03R\frequestBytes\x12%\n" +
+	"\x0eresponse_bytes\x18\x0f \x01(\x03R\rresponseBytes\x12)\n" +
+	"\x10request_complete\x18\x10 \x01(\bR\x0frequestComplete\x12+\n" +
+	"\x11response_complete\x18\x11 \x01(\bR\x10responseComplete\x12+\n" +
+	"\x11transfer_complete\x18\x12 \x01(\bR\x10transferComplete\x12P\n" +
+	"\x15request_storage_state\x18\x13 \x01(\x0e2\x1c.adal.tunnel.v1.StorageStateR\x13requestStorageState\x12R\n" +
+	"\x16response_storage_state\x18\x14 \x01(\x0e2\x1c.adal.tunnel.v1.StorageStateR\x14responseStorageState\x12G\n" +
+	"\x0fresponse_source\x18\x15 \x01(\x0e2\x1e.adal.tunnel.v1.ResponseSourceR\x0eresponseSource\"c\n" +
+	"\fSummaryEvent\x12\x19\n" +
+	"\bevent_id\x18\x01 \x01(\tR\aeventId\x128\n" +
+	"\asummary\x18\x02 \x01(\v2\x1e.adal.tunnel.v1.RequestSummaryR\asummary\"\x94\x01\n" +
+	"\n" +
+	"SummaryAck\x12\x19\n" +
+	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x02 \x01(\tR\trequestId\x12)\n" +
+	"\x10summary_revision\x18\x03 \x01(\x03R\x0fsummaryRevision\x12!\n" +
+	"\fsummary_hash\x18\x04 \x01(\fR\vsummaryHash\"0\n" +
 	"\x15GetTunnelQuotaRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"\xb5\x01\n" +
 	"\x10TunnelQuotaState\x12\x14\n" +
@@ -3264,7 +3696,9 @@ const file_adal_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\x0eResponseSource\x12\x1f\n" +
 	"\x1bRESPONSE_SOURCE_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18RESPONSE_SOURCE_ENDPOINT\x10\x01\x12\x1c\n" +
-	"\x18RESPONSE_SOURCE_PLATFORM\x10\x022\xa3\x01\n" +
+	"\x18RESPONSE_SOURCE_PLATFORM\x10\x022Z\n" +
+	"\rTunnelJournal\x12I\n" +
+	"\rReportSummary\x12\x1c.adal.tunnel.v1.SummaryEvent\x1a\x1a.adal.tunnel.v1.SummaryAck2\xa3\x01\n" +
 	"\vTunnelRelay\x12I\n" +
 	"\aExecute\x12\x1c.adal.tunnel.v1.ExecuteFrame\x1a\x1c.adal.tunnel.v1.ExecuteFrame(\x010\x01\x12I\n" +
 	"\aControl\x12\x1c.adal.tunnel.v1.ControlFrame\x1a\x1c.adal.tunnel.v1.ControlFrame(\x010\x012\xa5\x01\n" +
@@ -3294,7 +3728,7 @@ func file_adal_tunnel_v1_tunnel_proto_rawDescGZIP() []byte {
 }
 
 var file_adal_tunnel_v1_tunnel_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
-var file_adal_tunnel_v1_tunnel_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_adal_tunnel_v1_tunnel_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_adal_tunnel_v1_tunnel_proto_goTypes = []any{
 	(HTTPVersion)(0),              // 0: adal.tunnel.v1.HTTPVersion
 	(Direction)(0),                // 1: adal.tunnel.v1.Direction
@@ -3332,10 +3766,13 @@ var file_adal_tunnel_v1_tunnel_proto_goTypes = []any{
 	(*ReadBodyRequest)(nil),       // 33: adal.tunnel.v1.ReadBodyRequest
 	(*BodyEnd)(nil),               // 34: adal.tunnel.v1.BodyEnd
 	(*BodyFrame)(nil),             // 35: adal.tunnel.v1.BodyFrame
-	(*GetTunnelQuotaRequest)(nil), // 36: adal.tunnel.v1.GetTunnelQuotaRequest
-	(*TunnelQuotaState)(nil),      // 37: adal.tunnel.v1.TunnelQuotaState
-	(*durationpb.Duration)(nil),   // 38: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil), // 39: google.protobuf.Timestamp
+	(*RequestSummary)(nil),        // 36: adal.tunnel.v1.RequestSummary
+	(*SummaryEvent)(nil),          // 37: adal.tunnel.v1.SummaryEvent
+	(*SummaryAck)(nil),            // 38: adal.tunnel.v1.SummaryAck
+	(*GetTunnelQuotaRequest)(nil), // 39: adal.tunnel.v1.GetTunnelQuotaRequest
+	(*TunnelQuotaState)(nil),      // 40: adal.tunnel.v1.TunnelQuotaState
+	(*durationpb.Duration)(nil),   // 41: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil), // 42: google.protobuf.Timestamp
 }
 var file_adal_tunnel_v1_tunnel_proto_depIdxs = []int32{
 	9,  // 0: adal.tunnel.v1.RequestMetadata.headers:type_name -> adal.tunnel.v1.Header
@@ -3343,7 +3780,7 @@ var file_adal_tunnel_v1_tunnel_proto_depIdxs = []int32{
 	9,  // 2: adal.tunnel.v1.ResponseMetadata.headers:type_name -> adal.tunnel.v1.Header
 	0,  // 3: adal.tunnel.v1.ResponseMetadata.protocol:type_name -> adal.tunnel.v1.HTTPVersion
 	11, // 4: adal.tunnel.v1.Open.request:type_name -> adal.tunnel.v1.RequestMetadata
-	38, // 5: adal.tunnel.v1.Open.remaining_duration:type_name -> google.protobuf.Duration
+	41, // 5: adal.tunnel.v1.Open.remaining_duration:type_name -> google.protobuf.Duration
 	3,  // 6: adal.tunnel.v1.OpenAck.result:type_name -> adal.tunnel.v1.AdmissionResult
 	2,  // 7: adal.tunnel.v1.OpenAck.error:type_name -> adal.tunnel.v1.ErrorCode
 	9,  // 8: adal.tunnel.v1.End.trailers:type_name -> adal.tunnel.v1.Header
@@ -3372,7 +3809,7 @@ var file_adal_tunnel_v1_tunnel_proto_depIdxs = []int32{
 	23, // 31: adal.tunnel.v1.ControlFrame.state:type_name -> adal.tunnel.v1.ControlState
 	24, // 32: adal.tunnel.v1.ControlFrame.session_closed:type_name -> adal.tunnel.v1.SessionClosed
 	5,  // 33: adal.tunnel.v1.ApplyResult.status:type_name -> adal.tunnel.v1.ApplyStatus
-	39, // 34: adal.tunnel.v1.VerifiedSession.expires_at:type_name -> google.protobuf.Timestamp
+	42, // 34: adal.tunnel.v1.VerifiedSession.expires_at:type_name -> google.protobuf.Timestamp
 	10, // 35: adal.tunnel.v1.VerifiedSession.snapshot:type_name -> adal.tunnel.v1.ConfigSnapshot
 	29, // 36: adal.tunnel.v1.AccessResult.verified:type_name -> adal.tunnel.v1.VerifiedSession
 	6,  // 37: adal.tunnel.v1.AccessResult.denied:type_name -> adal.tunnel.v1.AccessDenial
@@ -3385,37 +3822,48 @@ var file_adal_tunnel_v1_tunnel_proto_depIdxs = []int32{
 	7,  // 44: adal.tunnel.v1.RequestDetails.request_storage:type_name -> adal.tunnel.v1.StorageState
 	7,  // 45: adal.tunnel.v1.RequestDetails.response_storage:type_name -> adal.tunnel.v1.StorageState
 	2,  // 46: adal.tunnel.v1.RequestDetails.error:type_name -> adal.tunnel.v1.ErrorCode
-	39, // 47: adal.tunnel.v1.RequestDetails.received_at:type_name -> google.protobuf.Timestamp
-	39, // 48: adal.tunnel.v1.RequestDetails.delete_after:type_name -> google.protobuf.Timestamp
-	31, // 49: adal.tunnel.v1.ReadBodyRequest.resource:type_name -> adal.tunnel.v1.ReadDetailsRequest
-	1,  // 50: adal.tunnel.v1.ReadBodyRequest.direction:type_name -> adal.tunnel.v1.Direction
-	7,  // 51: adal.tunnel.v1.BodyEnd.storage:type_name -> adal.tunnel.v1.StorageState
-	15, // 52: adal.tunnel.v1.BodyFrame.chunk:type_name -> adal.tunnel.v1.Data
-	34, // 53: adal.tunnel.v1.BodyFrame.end:type_name -> adal.tunnel.v1.BodyEnd
-	39, // 54: adal.tunnel.v1.TunnelQuotaState.observed_at:type_name -> google.protobuf.Timestamp
-	19, // 55: adal.tunnel.v1.TunnelRelay.Execute:input_type -> adal.tunnel.v1.ExecuteFrame
-	25, // 56: adal.tunnel.v1.TunnelRelay.Control:input_type -> adal.tunnel.v1.ControlFrame
-	10, // 57: adal.tunnel.v1.TunnelConfig.ApplyConfig:input_type -> adal.tunnel.v1.ConfigSnapshot
-	26, // 58: adal.tunnel.v1.TunnelConfig.ReportApplied:input_type -> adal.tunnel.v1.ApplyResult
-	27, // 59: adal.tunnel.v1.TunnelAccess.VerifyToken:input_type -> adal.tunnel.v1.VerifyTokenRequest
-	28, // 60: adal.tunnel.v1.TunnelAccess.CheckSession:input_type -> adal.tunnel.v1.CheckSessionRequest
-	31, // 61: adal.tunnel.v1.TunnelRead.ReadDetails:input_type -> adal.tunnel.v1.ReadDetailsRequest
-	33, // 62: adal.tunnel.v1.TunnelRead.ReadBody:input_type -> adal.tunnel.v1.ReadBodyRequest
-	36, // 63: adal.tunnel.v1.TunnelQuota.GetTunnelQuota:input_type -> adal.tunnel.v1.GetTunnelQuotaRequest
-	19, // 64: adal.tunnel.v1.TunnelRelay.Execute:output_type -> adal.tunnel.v1.ExecuteFrame
-	25, // 65: adal.tunnel.v1.TunnelRelay.Control:output_type -> adal.tunnel.v1.ControlFrame
-	26, // 66: adal.tunnel.v1.TunnelConfig.ApplyConfig:output_type -> adal.tunnel.v1.ApplyResult
-	26, // 67: adal.tunnel.v1.TunnelConfig.ReportApplied:output_type -> adal.tunnel.v1.ApplyResult
-	30, // 68: adal.tunnel.v1.TunnelAccess.VerifyToken:output_type -> adal.tunnel.v1.AccessResult
-	30, // 69: adal.tunnel.v1.TunnelAccess.CheckSession:output_type -> adal.tunnel.v1.AccessResult
-	32, // 70: adal.tunnel.v1.TunnelRead.ReadDetails:output_type -> adal.tunnel.v1.RequestDetails
-	35, // 71: adal.tunnel.v1.TunnelRead.ReadBody:output_type -> adal.tunnel.v1.BodyFrame
-	37, // 72: adal.tunnel.v1.TunnelQuota.GetTunnelQuota:output_type -> adal.tunnel.v1.TunnelQuotaState
-	64, // [64:73] is the sub-list for method output_type
-	55, // [55:64] is the sub-list for method input_type
-	55, // [55:55] is the sub-list for extension type_name
-	55, // [55:55] is the sub-list for extension extendee
-	0,  // [0:55] is the sub-list for field type_name
+	42, // 47: adal.tunnel.v1.RequestDetails.received_at:type_name -> google.protobuf.Timestamp
+	42, // 48: adal.tunnel.v1.RequestDetails.delete_after:type_name -> google.protobuf.Timestamp
+	42, // 49: adal.tunnel.v1.RequestDetails.completed_at:type_name -> google.protobuf.Timestamp
+	31, // 50: adal.tunnel.v1.ReadBodyRequest.resource:type_name -> adal.tunnel.v1.ReadDetailsRequest
+	1,  // 51: adal.tunnel.v1.ReadBodyRequest.direction:type_name -> adal.tunnel.v1.Direction
+	7,  // 52: adal.tunnel.v1.BodyEnd.storage:type_name -> adal.tunnel.v1.StorageState
+	15, // 53: adal.tunnel.v1.BodyFrame.chunk:type_name -> adal.tunnel.v1.Data
+	34, // 54: adal.tunnel.v1.BodyFrame.end:type_name -> adal.tunnel.v1.BodyEnd
+	34, // 55: adal.tunnel.v1.BodyFrame.start:type_name -> adal.tunnel.v1.BodyEnd
+	42, // 56: adal.tunnel.v1.RequestSummary.received_at:type_name -> google.protobuf.Timestamp
+	42, // 57: adal.tunnel.v1.RequestSummary.completed_at:type_name -> google.protobuf.Timestamp
+	42, // 58: adal.tunnel.v1.RequestSummary.delete_after:type_name -> google.protobuf.Timestamp
+	7,  // 59: adal.tunnel.v1.RequestSummary.request_storage_state:type_name -> adal.tunnel.v1.StorageState
+	7,  // 60: adal.tunnel.v1.RequestSummary.response_storage_state:type_name -> adal.tunnel.v1.StorageState
+	8,  // 61: adal.tunnel.v1.RequestSummary.response_source:type_name -> adal.tunnel.v1.ResponseSource
+	36, // 62: adal.tunnel.v1.SummaryEvent.summary:type_name -> adal.tunnel.v1.RequestSummary
+	42, // 63: adal.tunnel.v1.TunnelQuotaState.observed_at:type_name -> google.protobuf.Timestamp
+	37, // 64: adal.tunnel.v1.TunnelJournal.ReportSummary:input_type -> adal.tunnel.v1.SummaryEvent
+	19, // 65: adal.tunnel.v1.TunnelRelay.Execute:input_type -> adal.tunnel.v1.ExecuteFrame
+	25, // 66: adal.tunnel.v1.TunnelRelay.Control:input_type -> adal.tunnel.v1.ControlFrame
+	10, // 67: adal.tunnel.v1.TunnelConfig.ApplyConfig:input_type -> adal.tunnel.v1.ConfigSnapshot
+	26, // 68: adal.tunnel.v1.TunnelConfig.ReportApplied:input_type -> adal.tunnel.v1.ApplyResult
+	27, // 69: adal.tunnel.v1.TunnelAccess.VerifyToken:input_type -> adal.tunnel.v1.VerifyTokenRequest
+	28, // 70: adal.tunnel.v1.TunnelAccess.CheckSession:input_type -> adal.tunnel.v1.CheckSessionRequest
+	31, // 71: adal.tunnel.v1.TunnelRead.ReadDetails:input_type -> adal.tunnel.v1.ReadDetailsRequest
+	33, // 72: adal.tunnel.v1.TunnelRead.ReadBody:input_type -> adal.tunnel.v1.ReadBodyRequest
+	39, // 73: adal.tunnel.v1.TunnelQuota.GetTunnelQuota:input_type -> adal.tunnel.v1.GetTunnelQuotaRequest
+	38, // 74: adal.tunnel.v1.TunnelJournal.ReportSummary:output_type -> adal.tunnel.v1.SummaryAck
+	19, // 75: adal.tunnel.v1.TunnelRelay.Execute:output_type -> adal.tunnel.v1.ExecuteFrame
+	25, // 76: adal.tunnel.v1.TunnelRelay.Control:output_type -> adal.tunnel.v1.ControlFrame
+	26, // 77: adal.tunnel.v1.TunnelConfig.ApplyConfig:output_type -> adal.tunnel.v1.ApplyResult
+	26, // 78: adal.tunnel.v1.TunnelConfig.ReportApplied:output_type -> adal.tunnel.v1.ApplyResult
+	30, // 79: adal.tunnel.v1.TunnelAccess.VerifyToken:output_type -> adal.tunnel.v1.AccessResult
+	30, // 80: adal.tunnel.v1.TunnelAccess.CheckSession:output_type -> adal.tunnel.v1.AccessResult
+	32, // 81: adal.tunnel.v1.TunnelRead.ReadDetails:output_type -> adal.tunnel.v1.RequestDetails
+	35, // 82: adal.tunnel.v1.TunnelRead.ReadBody:output_type -> adal.tunnel.v1.BodyFrame
+	40, // 83: adal.tunnel.v1.TunnelQuota.GetTunnelQuota:output_type -> adal.tunnel.v1.TunnelQuotaState
+	74, // [74:84] is the sub-list for method output_type
+	64, // [64:74] is the sub-list for method input_type
+	64, // [64:64] is the sub-list for extension type_name
+	64, // [64:64] is the sub-list for extension extendee
+	0,  // [0:64] is the sub-list for field type_name
 }
 
 func init() { file_adal_tunnel_v1_tunnel_proto_init() }
@@ -3454,6 +3902,7 @@ func file_adal_tunnel_v1_tunnel_proto_init() {
 	file_adal_tunnel_v1_tunnel_proto_msgTypes[26].OneofWrappers = []any{
 		(*BodyFrame_Chunk)(nil),
 		(*BodyFrame_End)(nil),
+		(*BodyFrame_Start)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -3461,9 +3910,9 @@ func file_adal_tunnel_v1_tunnel_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_adal_tunnel_v1_tunnel_proto_rawDesc), len(file_adal_tunnel_v1_tunnel_proto_rawDesc)),
 			NumEnums:      9,
-			NumMessages:   29,
+			NumMessages:   32,
 			NumExtensions: 0,
-			NumServices:   5,
+			NumServices:   6,
 		},
 		GoTypes:           file_adal_tunnel_v1_tunnel_proto_goTypes,
 		DependencyIndexes: file_adal_tunnel_v1_tunnel_proto_depIdxs,
