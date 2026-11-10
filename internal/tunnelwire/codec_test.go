@@ -323,3 +323,30 @@ func TestTunnelEveryPayload(t *testing.T) {
 		}
 	}
 }
+
+func TestInitialReconcileWithoutSession(t *testing.T) {
+	f := controlFrame(t)
+	f.SessionId = ""
+	f.Payload = &pb.ControlFrame_Reconcile{Reconcile: &pb.Reconcile{}}
+	raw, err := MarshalControl(f)
+	if err != nil {
+		t.Fatal("initial Reconcile needs no session", err)
+	}
+	if _, err = UnmarshalControl(raw); err != nil {
+		t.Fatal(err)
+	}
+	f.Payload = &pb.ControlFrame_State{State: &pb.ControlState{}}
+	if _, err = MarshalControl(f); err == nil {
+		t.Fatal("State without authoritative session accepted")
+	}
+	f = controlFrame(t)
+	f.SessionId = ""
+	if _, err = MarshalControl(f); err == nil {
+		t.Fatal("Prepare without session accepted")
+	}
+	f.Payload = &pb.ControlFrame_Reconcile{Reconcile: &pb.Reconcile{}}
+	f.SessionId = "invalid"
+	if _, err = MarshalControl(f); err == nil {
+		t.Fatal("malformed session accepted")
+	}
+}

@@ -183,8 +183,12 @@ func connect(parent context.Context, address, token string) error {
 		} else {
 			s.executor.mu.Lock()
 			x := s.executor.active[frame.RequestId]
+			closed := s.executor.closed[frame.RequestId]
 			s.executor.mu.Unlock()
 			if x == nil {
+				if time.Now().Before(closed.until) && frame.SessionId == closed.sessionID && frame.ControlId == closed.controlID {
+					continue
+				}
 				return errProtocol
 			}
 			if err = x.Feed(frame); err != nil {

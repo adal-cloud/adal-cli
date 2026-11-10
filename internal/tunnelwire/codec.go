@@ -263,7 +263,9 @@ func ValidateControl(frame *pb.ControlFrame) error {
 	if frame.Version != Version {
 		return ErrVersion
 	}
-	if !validID(frame.ControlId) || !validID(frame.SessionId) || !validID(frame.TunnelId) || !validID(frame.OwnerId) ||
+	// Only the opening Reconcile can discover the authoritative session ID.
+	initial := frame.SessionId == "" && frame.GetReconcile() != nil
+	if !validID(frame.ControlId) || (!initial && !validID(frame.SessionId)) || !validID(frame.TunnelId) || !validID(frame.OwnerId) ||
 		!validID(frame.RegionId) || frame.Payload == nil || reflect.ValueOf(frame.Payload).IsNil() {
 		return ErrInvalidFrame
 	}

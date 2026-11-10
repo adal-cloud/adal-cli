@@ -19,11 +19,15 @@ import (
 type Executor struct {
 	mu     sync.Mutex
 	active map[string]*Exchange
-	closed map[string]time.Time
+	closed map[string]closedExchange
+}
+type closedExchange struct {
+	until                time.Time
+	sessionID, controlID string
 }
 
 func NewExecutor() *Executor {
-	return &Executor{active: make(map[string]*Exchange), closed: make(map[string]time.Time)}
+	return &Executor{active: make(map[string]*Exchange), closed: make(map[string]closedExchange)}
 }
 
 type Exchange struct {
@@ -59,12 +63,12 @@ func (e *Executor) Start(ctx context.Context, s *pb.ConfigSnapshot, f *pb.Execut
 	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	for id, until := range e.closed {
-		if time.Now().After(until) {
+	for id, closed := range e.closed {
+		if time.Now().After(closed.until) {
 			delete(e.closed, id)
 		}
 	}
-	if e.active[f.RequestId] != nil || !e.closed[f.RequestId].IsZero() {
+	if e.active[f.RequestId] != nil || !e.closed[f.RequestId].until.IsZero() {
 		return nil, fail(pb.ErrorCode_ERROR_CODE_INVALID_REQUEST)
 	}
 	maxRequests := s.MaxConcurrentRequests
@@ -91,7 +95,7 @@ func (x *Exchange) Cancel() {
 		_ = x.body.Close()
 		x.executor.mu.Lock()
 		delete(x.executor.active, x.open.RequestId)
-		x.executor.closed[x.open.RequestId] = time.Now().Add(125 * time.Second)
+		x.executor.closed[x.open.RequestId] = closedExchange{time.Now().Add(125 * time.Second), x.open.SessionId, x.open.ControlId}
 		x.executor.mu.Unlock()
 	})
 }

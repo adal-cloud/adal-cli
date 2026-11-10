@@ -112,6 +112,31 @@ func TestSessionExecutesWithoutJournal(t *testing.T) {
 		if string(body) != "live bytes" {
 			t.Error("response changed")
 		}
+		late := &pb.ExecuteFrame{Version: 1, RequestId: open.RequestId, SessionId: sessionID, ControlId: controlID, Payload: &pb.ExecuteFrame_Cancel{Cancel: &pb.Termination{Direction: pb.Direction_DIRECTION_BOTH, Code: pb.ErrorCode_ERROR_CODE_CLIENT_DISCONNECTED}}}
+		raw, err = tunnelwire.MarshalExecute(late)
+		if err == nil {
+			err = c.Write(ctx, websocket.MessageBinary, raw)
+		}
+		if err != nil {
+			done <- err
+			return
+		}
+		ctl.Payload = &pb.ControlFrame_Reconcile{Reconcile: &pb.Reconcile{}}
+		if err = writeControl(); err != nil {
+			done <- err
+			return
+		}
+		_, raw, err = c.Read(ctx)
+		if err != nil {
+			done <- err
+			return
+		}
+		reply, err = tunnelwire.UnmarshalControl(raw)
+		if err != nil || reply.GetState() == nil || !reply.GetState().Ready {
+			t.Error("late Cancel closed the session")
+			done <- err
+			return
+		}
 		_ = c.Close(websocket.StatusCode(4001), "Token is invalid")
 		done <- nil
 	}))
