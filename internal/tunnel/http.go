@@ -3,6 +3,7 @@ package tunnel
 import (
 	"crypto/tls"
 	pb "github.com/adal-cloud/adal-cli/internal/tunnelpb"
+	"github.com/adal-cloud/adal-cli/internal/tunnelwire"
 	"net"
 	"net/http"
 	"net/url"
@@ -18,6 +19,11 @@ func target(base string, m *pb.RequestMetadata) (*url.URL, error) {
 		return nil, fail(pb.ErrorCode_ERROR_CODE_INVALID_REQUEST)
 	}
 	path := string(m.RawPath)
+	if path == "*" && m.Method == "OPTIONS" && len(m.RawQuery) == 0 && !m.ForceQuery {
+		u.Path = "*"
+		u.RawPath = ""
+		return u, nil
+	}
 	if !strings.HasPrefix(path, "/") || strings.ContainsAny(path, "?#\r\n") {
 		return nil, fail(pb.ErrorCode_ERROR_CODE_INVALID_REQUEST)
 	}
@@ -40,11 +46,32 @@ func target(base string, m *pb.RequestMetadata) (*url.URL, error) {
 	return u, nil
 }
 func freshTransport() *http.Transport {
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetHTTP2(true)
 	return &http.Transport{Proxy: nil, DialContext: (&net.Dialer{Timeout: 5 * time.Second}).DialContext,
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12}, TLSHandshakeTimeout: 5 * time.Second,
-		DisableKeepAlives: true, DisableCompression: true, ForceAttemptHTTP2: false,
-		TLSNextProto:          map[string]func(string, *tls.Conn) http.RoundTripper{},
-		ExpectContinueTimeout: time.Second, MaxResponseHeaderBytes: 128 << 10}
+		DisableKeepAlives: true, DisableCompression: true, Protocols: protocols,
+		ExpectContinueTimeout: time.Second, MaxResponseHeaderBytes: (128 << 10) + 4096}
+}
+
+// The HTTP/2 encoder normalizes Cookie and keeps only the first User-Agent.
+func requiresHTTP1(fields []*pb.Header) bool {
+	agents := 0
+	for _, field := range fields {
+		if strings.EqualFold(field.Name, "Cookie") {
+			return true
+		}
+		if strings.EqualFold(field.Name, "User-Agent") {
+			for _, value := range field.RawValues {
+				agents++
+				if len(value) == 0 || agents > 1 {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 func incomingHeaders(fields []*pb.Header) (http.Header, error) {
 	h := make(http.Header)
@@ -71,7 +98,7 @@ func stripHop(h http.Header) {
 		h.Del(name)
 	}
 }
-func fields(h http.Header, limit int) ([]*pb.Header, error) {
+func fields(h http.Header, limit int, code pb.ErrorCode) ([]*pb.Header, error) {
 	out := make([]*pb.Header, 0, len(h))
 	keys := make([]string, 0, len(h))
 	for k := range h {
@@ -87,7 +114,7 @@ func fields(h http.Header, limit int) ([]*pb.Header, error) {
 		for _, v := range values {
 			limit -= len(k) + len(v)
 			if limit < 0 {
-				return nil, fail(pb.ErrorCode_ERROR_CODE_INVALID_ENDPOINT_RESPONSE)
+				return nil, fail(code)
 			}
 			f.RawValues = append(f.RawValues, []byte(v))
 		}
@@ -96,9 +123,46 @@ func fields(h http.Header, limit int) ([]*pb.Header, error) {
 	return out, nil
 }
 func requestHeaders(m *pb.RequestMetadata) (http.Header, error) {
+	for _, field := range m.Headers {
+		if strings.EqualFold(field.Name, "Upgrade") {
+			return nil, fail(pb.ErrorCode_ERROR_CODE_UPGRADE_NOT_SUPPORTED)
+		}
+		if strings.EqualFold(field.Name, "Connection") {
+			for _, value := range field.RawValues {
+				for _, token := range strings.Split(string(value), ",") {
+					if strings.EqualFold(strings.TrimSpace(token), "upgrade") {
+						return nil, fail(pb.ErrorCode_ERROR_CODE_UPGRADE_NOT_SUPPORTED)
+					}
+				}
+			}
+		}
+	}
 	h, err := incomingHeaders(m.Headers)
 	if err != nil {
 		return nil, err
+	}
+	continued, err := tunnelwire.ExpectContinue(h.Values("Expect"))
+	if err != nil {
+		return nil, fail(pb.ErrorCode_ERROR_CODE_EXPECTATION_FAILED)
+	}
+	if continued {
+		h.Set("Expect", "100-continue")
+	}
+	if m.Method == "TRACE" && (m.ContentLength == nil || *m.ContentLength != 0) {
+		return nil, fail(pb.ErrorCode_ERROR_CODE_INVALID_REQUEST)
+	}
+	if m.Method == "OPTIONS" || m.Method == "TRACE" {
+		values := h.Values("Max-Forwards")
+		if len(values) > 0 {
+			if len(values) != 1 {
+				return nil, fail(pb.ErrorCode_ERROR_CODE_INVALID_REQUEST)
+			}
+			next, zero, err := tunnelwire.DecrementMaxForwards(values[0])
+			if err != nil || zero {
+				return nil, fail(pb.ErrorCode_ERROR_CODE_INVALID_REQUEST)
+			}
+			h.Set("Max-Forwards", next)
+		}
 	}
 	h.Del("Host")
 	h.Del("Content-Length")
@@ -145,14 +209,10 @@ func trailerHeaders(h []*pb.Header) (http.Header, error) {
 	}
 	return out, nil
 }
-func responseMetadata(status int, h http.Header, length *int64) (*pb.ResponseMetadata, error) {
-	h = h.Clone()
-	stripHop(h)
-	h.Del("Content-Length")
-	h.Add("Via", "1.1 adal-tunnel")
-	headers, err := fields(h, 64<<10)
+func responseMetadata(status int, h http.Header, length *int64, version pb.HTTPVersion) (*pb.ResponseMetadata, error) {
+	headers, err := fields(h, 64<<10, pb.ErrorCode_ERROR_CODE_RESPONSE_HEADERS_TOO_LARGE)
 	if err != nil {
 		return nil, err
 	}
-	return &pb.ResponseMetadata{StatusCode: uint32(status), Headers: headers, Protocol: pb.HTTPVersion_HTTP_VERSION_1_1, ContentLength: length}, nil
+	return &pb.ResponseMetadata{StatusCode: uint32(status), Headers: headers, Protocol: version, ContentLength: length}, nil
 }

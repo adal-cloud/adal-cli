@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	pb "github.com/adal-cloud/adal-cli/internal/tunnelpb"
+	"github.com/adal-cloud/adal-cli/internal/tunnelwire"
 	"testing"
 	"time"
 )
@@ -48,23 +49,38 @@ func TestRequestWindowAndCancellation(t *testing.T) {
 	}
 }
 func TestResponseCreditIsBounded(t *testing.T) {
-	c := newCredit()
-	for range 4 {
-		if err := c.take(t.Context(), 64<<10); err != nil {
+	f := opening(snapshot("http://localhost"), "GET", "/", "")
+	c, err := tunnelwire.NewStream(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Payload = &pb.ExecuteFrame_OpenAck{OpenAck: &pb.OpenAck{Result: pb.AdmissionResult_ADMISSION_RESULT_ACCEPTED}}
+	if err = c.FromCLI(f); err != nil {
+		t.Fatal(err)
+	}
+	f.Payload = &pb.ExecuteFrame_ResponseStart{ResponseStart: &pb.ResponseMetadata{StatusCode: 200, Protocol: pb.HTTPVersion_HTTP_VERSION_1_1}}
+	if err = c.FromCLI(f); err != nil {
+		t.Fatal(err)
+	}
+	for i := uint64(1); i <= 4; i++ {
+		f.Payload = &pb.ExecuteFrame_ResponseData{ResponseData: &pb.Data{SequenceNo: i, Data: make([]byte, 64<<10)}}
+		if err := c.FromCLI(f); err != nil {
 			t.Fatal(err)
 		}
 	}
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
-	go func() { done <- c.take(ctx, 1) }()
+	go func() { _, err := c.WaitCredit(ctx, pb.Direction_DIRECTION_RESPONSE, 1); done <- err }()
 	cancel()
 	if err := <-done; err == nil {
 		t.Fatal("empty credit ignored cancellation")
 	}
-	if err := c.grant(256 << 10); err != nil {
+	f.Payload = &pb.ExecuteFrame_WindowUpdate{WindowUpdate: &pb.WindowUpdate{Direction: pb.Direction_DIRECTION_RESPONSE, CreditBytes: 256 << 10}}
+	if err := c.FromRegion(f); err != nil {
 		t.Fatal(err)
 	}
-	if err := c.grant(1); err == nil {
+	f.GetWindowUpdate().CreditBytes = 1
+	if err := c.FromRegion(f); err == nil {
 		t.Fatal("excessive credit accepted")
 	}
 }

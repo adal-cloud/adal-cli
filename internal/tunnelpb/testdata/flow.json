@@ -1,0 +1,7 @@
+{
+  "cases": [
+    {"name":"request_credit_overrun","direction":"request","chunks":[65536,65536,65536,65536,1],"error_at":5},
+    {"name":"response_credit_overrun","direction":"response","chunks":[65536,65536,65536,65536,1],"error_at":5},
+    {"name":"tiny_request_chunks","direction":"request","chunks":[1,1,1,1,1,1,1,1],"error_at":0}
+  ]
+}

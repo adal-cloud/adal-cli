@@ -84,7 +84,7 @@ type connection struct {
 	ctx                            context.Context
 	cancel                         context.CancelFunc
 	socket                         *websocket.Conn
-	writeMu                        sync.Mutex
+	writer                         *tunnelwire.Writer
 	executor                       *Executor
 	pending, active                *pb.ConfigSnapshot
 	identity                       *pb.ControlFrame
@@ -102,8 +102,10 @@ func connect(parent context.Context, address, token string) error {
 	defer c.CloseNow()
 	c.SetReadLimit(tunnelwire.MaxFrameBytes)
 	s := &connection{ctx: ctx, cancel: cancel, socket: c, executor: NewExecutor()}
+	s.writer = tunnelwire.NewWriter(ctx, func(ctx context.Context, raw []byte) error { return c.Write(ctx, websocket.MessageBinary, raw) })
 	defer func() {
 		cancel()
+		s.writer.Close()
 		s.executor.mu.Lock()
 		active := make([]*Exchange, 0, len(s.executor.active))
 		for _, x := range s.executor.active {
@@ -178,8 +180,9 @@ func connect(parent context.Context, address, token string) error {
 				}
 				continue
 			}
+			stopQueued := context.AfterFunc(x.ctx, func() { s.writer.Cancel(frame.RequestId) })
 			s.workers.Add(1)
-			go func() { defer s.workers.Done(); _ = x.Run(s.executeWrite) }()
+			go func() { defer s.workers.Done(); defer stopQueued(); _ = x.Run(s.executeWrite) }()
 		} else {
 			s.executor.mu.Lock()
 			x := s.executor.active[frame.RequestId]
@@ -192,14 +195,24 @@ func connect(parent context.Context, address, token string) error {
 				return errProtocol
 			}
 			if err = x.Feed(frame); err != nil {
-				return err
+				if errors.Is(err, ErrClosed) {
+					continue
+				}
+				x.Cancel()
+				reply := x.frame()
+				reply.Payload = &pb.ExecuteFrame_Error{Error: &pb.Termination{Direction: pb.Direction_DIRECTION_RESPONSE, Code: pb.ErrorCode_ERROR_CODE_PROTOCOL_ERROR}}
+				raw, encodeErr := tunnelwire.MarshalExecute(reply)
+				if encodeErr == nil {
+					_, _ = s.writer.Enqueue(ctx, frame.RequestId, true, raw)
+				}
 			}
 		}
 	}
 }
 func (s *connection) write(typ websocket.MessageType, data []byte) error {
-	s.writeMu.Lock()
-	defer s.writeMu.Unlock()
+	if typ == websocket.MessageBinary {
+		return s.writer.Write(s.ctx, "", true, data)
+	}
 	ctx, cancel := context.WithTimeout(s.ctx, 5*time.Second)
 	defer cancel()
 	err := s.socket.Write(ctx, typ, data)
@@ -213,7 +226,13 @@ func (s *connection) executeWrite(f *pb.ExecuteFrame) error {
 	if err != nil {
 		return err
 	}
-	return s.write(websocket.MessageBinary, raw)
+	priority := f.GetWindowUpdate() != nil || f.GetCancel() != nil || f.GetError() != nil || f.GetOpenAck() != nil
+	err = s.writer.Write(s.ctx, f.RequestId, priority, raw)
+	if err != nil && !errors.Is(err, tunnelwire.ErrWriterFull) && !errors.Is(err, tunnelwire.ErrStreamClosed) {
+		s.cancel()
+		_ = s.socket.CloseNow()
+	}
+	return err
 }
 func (s *connection) control(f *pb.ControlFrame) error {
 	if s.identity == nil {

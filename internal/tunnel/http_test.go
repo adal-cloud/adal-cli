@@ -53,8 +53,10 @@ func (c *capture) emit(f *pb.ExecuteFrame) error {
 	return nil
 }
 func perform(t *testing.T, s *pb.ConfigSnapshot, open *pb.ExecuteFrame, finish bool) ([]*pb.ExecuteFrame, error) {
+	return performExecutor(t, NewExecutor(), s, open, finish)
+}
+func performExecutor(t *testing.T, e *Executor, s *pb.ConfigSnapshot, open *pb.ExecuteFrame, finish bool) ([]*pb.ExecuteFrame, error) {
 	t.Helper()
-	e := NewExecutor()
 	x, err := e.Start(t.Context(), s, open)
 	if err != nil {
 		return nil, err

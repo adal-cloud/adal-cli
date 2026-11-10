@@ -939,7 +939,7 @@ func TestDialFailureIsLogged(t *testing.T) {
 	go func() {
 		done <- run(ctx, hostOf(srv), token, frameLimit, 0, logger, t.TempDir())
 	}()
-	text := waitLog(t, buf, "Reconnecting")
+	text := waitLog(t, buf, "Connected")
 	host := hostOf(srv)
 	if strings.Count(text, "Connecting") < 2 || !strings.Contains(text, logField("host", host)) || !strings.Contains(text, "Connection failed") || !strings.Contains(text, "Reconnecting") || !strings.Contains(text, "Connected") {
 		t.Fatalf("log = %q", text)

@@ -3,23 +3,27 @@ package tunnel
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	pb "github.com/adal-cloud/adal-cli/internal/tunnelpb"
 	"github.com/adal-cloud/adal-cli/internal/tunnelwire"
 	"google.golang.org/protobuf/proto"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptrace"
 	"net/textproto"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
 type Executor struct {
-	mu     sync.Mutex
-	active map[string]*Exchange
-	closed map[string]closedExchange
+	transport func() *http.Transport
+	mu        sync.Mutex
+	active    map[string]*Exchange
+	closed    map[string]closedExchange
 }
 type closedExchange struct {
 	until                time.Time
@@ -27,21 +31,22 @@ type closedExchange struct {
 }
 
 func NewExecutor() *Executor {
-	return &Executor{active: make(map[string]*Exchange), closed: make(map[string]closedExchange)}
+	return &Executor{active: make(map[string]*Exchange), closed: make(map[string]closedExchange), transport: freshTransport}
 }
 
 type Exchange struct {
-	ctx      context.Context
-	cancel   context.CancelFunc
-	executor *Executor
-	snapshot *pb.ConfigSnapshot
-	open     *pb.ExecuteFrame
-	body     *body
-	credit   *credit
-	once     sync.Once
-	run      atomic.Bool
-	emitMu   sync.Mutex
-	emit     func(*pb.ExecuteFrame) error
+	transport func() *http.Transport
+	ctx       context.Context
+	cancel    context.CancelFunc
+	executor  *Executor
+	snapshot  *pb.ConfigSnapshot
+	open      *pb.ExecuteFrame
+	body      *body
+	flow      *tunnelwire.Stream
+	once      sync.Once
+	run       atomic.Bool
+	emitMu    sync.Mutex
+	emit      func(*pb.ExecuteFrame) error
 }
 
 func (e *Executor) Start(ctx context.Context, s *pb.ConfigSnapshot, f *pb.ExecuteFrame) (*Exchange, error) {
@@ -52,6 +57,9 @@ func (e *Executor) Start(ctx context.Context, s *pb.ConfigSnapshot, f *pb.Execut
 		return nil, fail(pb.ErrorCode_ERROR_CODE_INVALID_REQUEST)
 	}
 	o := f.GetOpen()
+	if o.Request.Method == "CONNECT" {
+		return nil, fail(pb.ErrorCode_ERROR_CODE_CONNECT_NOT_SUPPORTED)
+	}
 	if o.OwnerId != s.OwnerId || o.TunnelId != s.TunnelId || o.RegionId != s.RegionId || o.Revision != s.Revision || !bytes.Equal(o.ConfigHash, s.ConfigHash) {
 		return nil, fail(pb.ErrorCode_ERROR_CODE_TUNNEL_NOT_READY)
 	}
@@ -79,7 +87,13 @@ func (e *Executor) Start(ctx context.Context, s *pb.ConfigSnapshot, f *pb.Execut
 		return nil, fail(pb.ErrorCode_ERROR_CODE_CONCURRENCY_LIMIT_EXCEEDED)
 	}
 	ctx, cancel := context.WithTimeout(ctx, min(o.RemainingDuration.AsDuration(), time.Duration(s.TimeoutSeconds)*time.Second))
-	x := &Exchange{ctx: ctx, cancel: cancel, executor: e, snapshot: proto.Clone(s).(*pb.ConfigSnapshot), open: proto.Clone(f).(*pb.ExecuteFrame), credit: newCredit()}
+	flow, err := tunnelwire.NewStream(f)
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	x := &Exchange{ctx: ctx, cancel: cancel, executor: e, snapshot: proto.Clone(s).(*pb.ConfigSnapshot), open: proto.Clone(f).(*pb.ExecuteFrame), flow: flow}
+	x.transport = e.transport
 	x.body = newBody(ctx, func(n int) error { return x.sendWindow(n) })
 	e.active[f.RequestId] = x
 	context.AfterFunc(ctx, func() {
@@ -108,6 +122,9 @@ func (x *Exchange) send(f *pb.ExecuteFrame) error {
 	if x.emit == nil {
 		return ErrClosed
 	}
+	if err := x.flow.FromCLI(f); err != nil {
+		return err
+	}
 	return x.emit(f)
 }
 func (x *Exchange) sendWindow(n int) error {
@@ -122,6 +139,12 @@ func (x *Exchange) Feed(f *pb.ExecuteFrame) error {
 	if tunnelwire.ValidateExecute(f) != nil || f.RequestId != x.open.RequestId || f.SessionId != x.open.SessionId || f.ControlId != x.open.ControlId || len(f.ProtoReflect().GetUnknown()) != 0 {
 		return fail(pb.ErrorCode_ERROR_CODE_INVALID_REQUEST)
 	}
+	if err := x.flow.FromRegion(f); err != nil {
+		if errors.Is(err, tunnelwire.ErrStreamClosed) {
+			return ErrClosed
+		}
+		return err
+	}
 	switch p := f.Payload.(type) {
 	case *pb.ExecuteFrame_RequestData:
 		return x.body.push(p.RequestData)
@@ -129,9 +152,12 @@ func (x *Exchange) Feed(f *pb.ExecuteFrame) error {
 		return x.body.end(p.RequestEnd)
 	case *pb.ExecuteFrame_WindowUpdate:
 		if p.WindowUpdate.Direction == pb.Direction_DIRECTION_RESPONSE {
-			return x.credit.grant(int(p.WindowUpdate.CreditBytes))
+			return nil
 		}
 	case *pb.ExecuteFrame_Cancel:
+		x.Cancel()
+		return nil
+	case *pb.ExecuteFrame_Error:
 		x.Cancel()
 		return nil
 	}
@@ -156,6 +182,13 @@ func (x *Exchange) Run(emit func(*pb.ExecuteFrame) error) (err error) {
 			var typed *Error
 			if errors.As(err, &typed) {
 				code = typed.Code
+			}
+			var protocol *tunnelwire.ProtocolError
+			if errors.As(err, &protocol) {
+				code = protocol.Code
+			}
+			if errors.Is(err, tunnelwire.ErrWriterFull) {
+				code = pb.ErrorCode_ERROR_CODE_SERVICE_OVERLOADED
 			}
 			if errors.Is(x.ctx.Err(), context.DeadlineExceeded) {
 				code = pb.ErrorCode_ERROR_CODE_REQUEST_TIMEOUT
@@ -195,16 +228,26 @@ func (x *Exchange) execute() error {
 		}
 		return nil
 	}
-	infoCount, infoBytes := 0, 0
 	var gotResponse atomic.Bool
-	trace := &httptrace.ClientTrace{GotFirstResponseByte: func() { gotResponse.Store(true) }, Got1xxResponse: func(code int, h textproto.MIMEHeader) error {
-		m, err := responseMetadata(code, http.Header(h), nil)
-		if err != nil {
+	transport := x.transport()
+	if requiresHTTP1(meta.Headers) {
+		transport.Protocols = new(http.Protocols)
+		transport.Protocols.SetHTTP1(true)
+	}
+	capture := captureFraming(transport, u)
+	defer transport.CloseIdleConnections()
+	var protocol atomic.Int32
+	protocol.Store(int32(pb.HTTPVersion_HTTP_VERSION_1_1))
+	trace := &httptrace.ClientTrace{TLSHandshakeDone: func(state tls.ConnectionState, _ error) {
+		if state.NegotiatedProtocol == "h2" {
+			protocol.Store(int32(pb.HTTPVersion_HTTP_VERSION_2))
+		}
+	}, GotFirstResponseByte: func() { gotResponse.Store(true) }, Got1xxResponse: func(code int, h textproto.MIMEHeader) error {
+		if err := capture.restore(code, http.Header(h)); err != nil {
 			return err
 		}
-		infoCount++
-		infoBytes += proto.Size(m)
-		if infoCount > 16 || infoBytes > 64<<10 {
+		m, err := responseMetadata(code, http.Header(h), nil, pb.HTTPVersion(protocol.Load()))
+		if err != nil {
 			return fail(pb.ErrorCode_ERROR_CODE_INVALID_ENDPOINT_RESPONSE)
 		}
 		f := x.frame()
@@ -212,25 +255,51 @@ func (x *Exchange) execute() error {
 		return x.send(f)
 	}}
 	req = req.WithContext(httptrace.WithClientTrace(x.ctx, trace))
-	transport := freshTransport()
-	defer transport.CloseIdleConnections()
-	response, err := transport.RoundTrip(req)
+	port := u.Port()
+	if port == "" {
+		port = "80"
+		if u.Scheme == "https" {
+			port = "443"
+		}
+	}
+	connectCtx, stopConnect := context.WithTimeout(req.Context(), 5*time.Second)
+	connection, err := transport.NewClientConn(connectCtx, u.Scheme, net.JoinHostPort(u.Hostname(), port))
+	stopConnect()
 	if err != nil {
+		return err
+	}
+	defer connection.Close()
+	stopConnection := context.AfterFunc(x.ctx, func() { _ = connection.Close() })
+	defer stopConnection()
+	// A single ClientConn.RoundTrip bypasses Transport's automatic retry loop.
+	response, err := connection.RoundTrip(req)
+	if err != nil {
+		var typed *Error
+		if errors.As(err, &typed) {
+			return typed
+		}
+		var protocol *tunnelwire.ProtocolError
+		if errors.As(err, &protocol) {
+			return fail(protocol.Code)
+		}
 		if gotResponse.Load() {
 			return fail(pb.ErrorCode_ERROR_CODE_INVALID_ENDPOINT_RESPONSE)
 		}
 		return err
 	}
 	defer response.Body.Close()
+	if err := capture.restore(response.StatusCode, response.Header); err != nil {
+		return err
+	}
 	if response.StatusCode == 101 {
-		return fail(pb.ErrorCode_ERROR_CODE_UPGRADE_NOT_SUPPORTED)
+		return fail(pb.ErrorCode_ERROR_CODE_INVALID_ENDPOINT_RESPONSE)
 	}
-	var length *int64
-	if response.ContentLength >= 0 {
-		n := response.ContentLength
-		length = &n
+	length := responseLength(response, meta.Method)
+	version := pb.HTTPVersion_HTTP_VERSION_1_1
+	if response.ProtoMajor == 2 {
+		version = pb.HTTPVersion_HTTP_VERSION_2
 	}
-	metadata, err := responseMetadata(response.StatusCode, response.Header, length)
+	metadata, err := responseMetadata(response.StatusCode, response.Header, length, version)
 	if err != nil {
 		return err
 	}
@@ -249,14 +318,18 @@ func (x *Exchange) execute() error {
 			if total > bodyLimit {
 				return fail(pb.ErrorCode_ERROR_CODE_RESPONSE_BODY_TOO_LARGE)
 			}
-			if err = x.credit.take(x.ctx, n); err != nil {
-				return err
-			}
-			seq++
-			f := x.frame()
-			f.Payload = &pb.ExecuteFrame_ResponseData{ResponseData: &pb.Data{SequenceNo: seq, Data: buffer[:n]}}
-			if err = x.send(f); err != nil {
-				return err
+			for pos := 0; pos < n; {
+				allowed, err := x.flow.WaitCredit(x.ctx, pb.Direction_DIRECTION_RESPONSE, n-pos)
+				if err != nil {
+					return err
+				}
+				seq++
+				f := x.frame()
+				f.Payload = &pb.ExecuteFrame_ResponseData{ResponseData: &pb.Data{SequenceNo: seq, Data: buffer[pos : pos+allowed]}}
+				if err = x.send(f); err != nil {
+					return err
+				}
+				pos += allowed
 			}
 		}
 		if readErr == io.EOF {
@@ -275,9 +348,22 @@ func (x *Exchange) execute() error {
 	return x.send(f)
 }
 func trailerHeadersFromHTTP(h http.Header) ([]*pb.Header, error) {
-	h = h.Clone()
-	stripHop(h)
-	h.Del("Content-Length")
-	h.Del("Host")
-	return fields(h, 16<<10)
+	return fields(h, 16<<10, pb.ErrorCode_ERROR_CODE_RESPONSE_TRAILERS_TOO_LARGE)
+}
+func responseLength(r *http.Response, method string) *int64 {
+	if r.StatusCode == 204 {
+		return nil
+	}
+	if method == "HEAD" || r.StatusCode == 304 {
+		if raw := r.Header.Get("Content-Length"); raw != "" {
+			if n, err := strconv.ParseInt(raw, 10, 64); err == nil && n >= 0 {
+				return &n
+			}
+		}
+	}
+	if r.ContentLength >= 0 {
+		n := r.ContentLength
+		return &n
+	}
+	return nil
 }

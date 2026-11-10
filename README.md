@@ -257,7 +257,10 @@ The executor streams both directions independently. Request and response windows
 are 256 KiB each. Data chunks are at most 64 KiB and frames at most 128 KiB.
 At most 64 exchanges run locally, also limited by the active snapshot. Each
 exchange reserves bounded buffers; a full window never blocks the socket reader.
-Endpoint connections use fresh HTTP/1.1 connections with verified TLS. Redirects,
+Endpoint connections are fresh and verify TLS. HTTPS negotiates HTTP/2 except
+when Cookie is present or User-Agent has repeated or empty values. Those requests
+select HTTP/1.1 before dialing to preserve their field bytes. Each exchange makes
+exactly one ClientConn.RoundTrip call. Redirects,
 proxy environment settings, automatic decompression, and hidden HTTP retries are
 disabled. Host and TLS SNI come from the configured endpoint. Escaped path,
 query, compressed body bytes, repeated headers, and byte values are preserved.
