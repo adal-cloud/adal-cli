@@ -147,7 +147,8 @@ var TunnelRelay_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	TunnelConfig_ApplyConfig_FullMethodName = "/adal.tunnel.v1.TunnelConfig/ApplyConfig"
+	TunnelConfig_ApplyConfig_FullMethodName   = "/adal.tunnel.v1.TunnelConfig/ApplyConfig"
+	TunnelConfig_ReportApplied_FullMethodName = "/adal.tunnel.v1.TunnelConfig/ReportApplied"
 )
 
 // TunnelConfigClient is the client API for TunnelConfig service.
@@ -155,6 +156,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TunnelConfigClient interface {
 	ApplyConfig(ctx context.Context, in *ConfigSnapshot, opts ...grpc.CallOption) (*ApplyResult, error)
+	ReportApplied(ctx context.Context, in *ApplyResult, opts ...grpc.CallOption) (*ApplyResult, error)
 }
 
 type tunnelConfigClient struct {
@@ -175,11 +177,22 @@ func (c *tunnelConfigClient) ApplyConfig(ctx context.Context, in *ConfigSnapshot
 	return out, nil
 }
 
+func (c *tunnelConfigClient) ReportApplied(ctx context.Context, in *ApplyResult, opts ...grpc.CallOption) (*ApplyResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ApplyResult)
+	err := c.cc.Invoke(ctx, TunnelConfig_ReportApplied_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TunnelConfigServer is the server API for TunnelConfig service.
 // All implementations must embed UnimplementedTunnelConfigServer
 // for forward compatibility.
 type TunnelConfigServer interface {
 	ApplyConfig(context.Context, *ConfigSnapshot) (*ApplyResult, error)
+	ReportApplied(context.Context, *ApplyResult) (*ApplyResult, error)
 	mustEmbedUnimplementedTunnelConfigServer()
 }
 
@@ -192,6 +205,9 @@ type UnimplementedTunnelConfigServer struct{}
 
 func (UnimplementedTunnelConfigServer) ApplyConfig(context.Context, *ConfigSnapshot) (*ApplyResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ApplyConfig not implemented")
+}
+func (UnimplementedTunnelConfigServer) ReportApplied(context.Context, *ApplyResult) (*ApplyResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReportApplied not implemented")
 }
 func (UnimplementedTunnelConfigServer) mustEmbedUnimplementedTunnelConfigServer() {}
 func (UnimplementedTunnelConfigServer) testEmbeddedByValue()                      {}
@@ -232,6 +248,24 @@ func _TunnelConfig_ApplyConfig_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TunnelConfig_ReportApplied_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ApplyResult)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TunnelConfigServer).ReportApplied(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TunnelConfig_ReportApplied_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TunnelConfigServer).ReportApplied(ctx, req.(*ApplyResult))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TunnelConfig_ServiceDesc is the grpc.ServiceDesc for TunnelConfig service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -242,6 +276,10 @@ var TunnelConfig_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ApplyConfig",
 			Handler:    _TunnelConfig_ApplyConfig_Handler,
+		},
+		{
+			MethodName: "ReportApplied",
+			Handler:    _TunnelConfig_ReportApplied_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

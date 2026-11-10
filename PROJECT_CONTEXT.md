@@ -192,3 +192,9 @@ Informational responses and an early final response do not wait for upload EOF.
 
 Run `go test ./internal/tunnel ./internal/session` for local HTTP and WebSocket
 fixtures. These tests require no external service, database, or broker.
+
+Reconcile reports the live active snapshot and binds it to the new control ID.
+Its first frame may already carry the server-provided session ID. Prepare keeps
+the previous snapshot available until Activate. Existing HTTP exchanges retain
+their original settings when another revision activates. Reconciliation never
+replays an HTTP call or lowers an active revision.

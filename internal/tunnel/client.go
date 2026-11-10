@@ -236,7 +236,7 @@ func (s *connection) executeWrite(f *pb.ExecuteFrame) error {
 }
 func (s *connection) control(f *pb.ControlFrame) error {
 	if s.identity == nil {
-		if f.GetPrepare() == nil {
+		if f.GetPrepare() == nil && f.GetReconcile() == nil {
 			return errProtocol
 		}
 		s.identity = proto.Clone(f).(*pb.ControlFrame)
@@ -275,6 +275,9 @@ func (s *connection) control(f *pb.ControlFrame) error {
 		s.activeControl = f.ControlId
 		reply.Payload = &pb.ControlFrame_Active{Active: &pb.RevisionState{Revision: s.active.Revision, ConfigHash: s.active.ConfigHash}}
 	case *pb.ControlFrame_Reconcile:
+		if s.active != nil {
+			s.activeControl = f.ControlId
+		}
 		state := &pb.ControlState{Ready: s.active != nil}
 		if s.active != nil {
 			state.Active = &pb.RevisionState{Revision: s.active.Revision, ConfigHash: s.active.ConfigHash}

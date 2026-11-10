@@ -2041,6 +2041,11 @@ type ApplyResult struct {
 	ConfigHash      []byte                 `protobuf:"bytes,4,opt,name=config_hash,json=configHash,proto3" json:"config_hash,omitempty"`
 	Ready           bool                   `protobuf:"varint,5,opt,name=ready,proto3" json:"ready,omitempty"`
 	Status          ApplyStatus            `protobuf:"varint,6,opt,name=status,proto3,enum=adal.tunnel.v1.ApplyStatus" json:"status,omitempty"`
+	EventId         string                 `protobuf:"bytes,7,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	OwnerId         string                 `protobuf:"bytes,8,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	RegionId        string                 `protobuf:"bytes,9,opt,name=region_id,json=regionId,proto3" json:"region_id,omitempty"`
+	StateRevision   int64                  `protobuf:"varint,10,opt,name=state_revision,json=stateRevision,proto3" json:"state_revision,omitempty"`
+	Online          bool                   `protobuf:"varint,11,opt,name=online,proto3" json:"online,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -2115,6 +2120,41 @@ func (x *ApplyResult) GetStatus() ApplyStatus {
 		return x.Status
 	}
 	return ApplyStatus_APPLY_STATUS_UNSPECIFIED
+}
+
+func (x *ApplyResult) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *ApplyResult) GetOwnerId() string {
+	if x != nil {
+		return x.OwnerId
+	}
+	return ""
+}
+
+func (x *ApplyResult) GetRegionId() string {
+	if x != nil {
+		return x.RegionId
+	}
+	return ""
+}
+
+func (x *ApplyResult) GetStateRevision() int64 {
+	if x != nil {
+		return x.StateRevision
+	}
+	return 0
+}
+
+func (x *ApplyResult) GetOnline() bool {
+	if x != nil {
+		return x.Online
+	}
+	return false
 }
 
 type VerifyTokenRequest struct {
@@ -3065,7 +3105,7 @@ const file_adal_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\treconcile\x18\x0e \x01(\v2\x19.adal.tunnel.v1.ReconcileH\x00R\treconcile\x124\n" +
 	"\x05state\x18\x0f \x01(\v2\x1c.adal.tunnel.v1.ControlStateH\x00R\x05state\x12F\n" +
 	"\x0esession_closed\x18\x10 \x01(\v2\x1d.adal.tunnel.v1.SessionClosedH\x00R\rsessionClosedB\t\n" +
-	"\apayload\"\xec\x01\n" +
+	"\apayload\"\xfe\x02\n" +
 	"\vApplyResult\x12\x1b\n" +
 	"\ttunnel_id\x18\x01 \x01(\tR\btunnelId\x12)\n" +
 	"\x10desired_revision\x18\x02 \x01(\x03R\x0fdesiredRevision\x12)\n" +
@@ -3073,7 +3113,13 @@ const file_adal_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\vconfig_hash\x18\x04 \x01(\fR\n" +
 	"configHash\x12\x14\n" +
 	"\x05ready\x18\x05 \x01(\bR\x05ready\x123\n" +
-	"\x06status\x18\x06 \x01(\x0e2\x1b.adal.tunnel.v1.ApplyStatusR\x06status\"I\n" +
+	"\x06status\x18\x06 \x01(\x0e2\x1b.adal.tunnel.v1.ApplyStatusR\x06status\x12\x19\n" +
+	"\bevent_id\x18\a \x01(\tR\aeventId\x12\x19\n" +
+	"\bowner_id\x18\b \x01(\tR\aownerId\x12\x1b\n" +
+	"\tregion_id\x18\t \x01(\tR\bregionId\x12%\n" +
+	"\x0estate_revision\x18\n" +
+	" \x01(\x03R\rstateRevision\x12\x16\n" +
+	"\x06online\x18\v \x01(\bR\x06online\"I\n" +
 	"\x12VerifyTokenRequest\x12\x16\n" +
 	"\x06secret\x18\x01 \x01(\tR\x06secret\x12\x1b\n" +
 	"\tclient_ip\x18\x02 \x01(\tR\bclientIp\"l\n" +
@@ -3221,9 +3267,10 @@ const file_adal_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\x18RESPONSE_SOURCE_PLATFORM\x10\x022\xa3\x01\n" +
 	"\vTunnelRelay\x12I\n" +
 	"\aExecute\x12\x1c.adal.tunnel.v1.ExecuteFrame\x1a\x1c.adal.tunnel.v1.ExecuteFrame(\x010\x01\x12I\n" +
-	"\aControl\x12\x1c.adal.tunnel.v1.ControlFrame\x1a\x1c.adal.tunnel.v1.ControlFrame(\x010\x012Z\n" +
+	"\aControl\x12\x1c.adal.tunnel.v1.ControlFrame\x1a\x1c.adal.tunnel.v1.ControlFrame(\x010\x012\xa5\x01\n" +
 	"\fTunnelConfig\x12J\n" +
-	"\vApplyConfig\x12\x1e.adal.tunnel.v1.ConfigSnapshot\x1a\x1b.adal.tunnel.v1.ApplyResult2\xb2\x01\n" +
+	"\vApplyConfig\x12\x1e.adal.tunnel.v1.ConfigSnapshot\x1a\x1b.adal.tunnel.v1.ApplyResult\x12I\n" +
+	"\rReportApplied\x12\x1b.adal.tunnel.v1.ApplyResult\x1a\x1b.adal.tunnel.v1.ApplyResult2\xb2\x01\n" +
 	"\fTunnelAccess\x12O\n" +
 	"\vVerifyToken\x12\".adal.tunnel.v1.VerifyTokenRequest\x1a\x1c.adal.tunnel.v1.AccessResult\x12Q\n" +
 	"\fCheckSession\x12#.adal.tunnel.v1.CheckSessionRequest\x1a\x1c.adal.tunnel.v1.AccessResult2\xa9\x01\n" +
@@ -3349,21 +3396,23 @@ var file_adal_tunnel_v1_tunnel_proto_depIdxs = []int32{
 	19, // 55: adal.tunnel.v1.TunnelRelay.Execute:input_type -> adal.tunnel.v1.ExecuteFrame
 	25, // 56: adal.tunnel.v1.TunnelRelay.Control:input_type -> adal.tunnel.v1.ControlFrame
 	10, // 57: adal.tunnel.v1.TunnelConfig.ApplyConfig:input_type -> adal.tunnel.v1.ConfigSnapshot
-	27, // 58: adal.tunnel.v1.TunnelAccess.VerifyToken:input_type -> adal.tunnel.v1.VerifyTokenRequest
-	28, // 59: adal.tunnel.v1.TunnelAccess.CheckSession:input_type -> adal.tunnel.v1.CheckSessionRequest
-	31, // 60: adal.tunnel.v1.TunnelRead.ReadDetails:input_type -> adal.tunnel.v1.ReadDetailsRequest
-	33, // 61: adal.tunnel.v1.TunnelRead.ReadBody:input_type -> adal.tunnel.v1.ReadBodyRequest
-	36, // 62: adal.tunnel.v1.TunnelQuota.GetTunnelQuota:input_type -> adal.tunnel.v1.GetTunnelQuotaRequest
-	19, // 63: adal.tunnel.v1.TunnelRelay.Execute:output_type -> adal.tunnel.v1.ExecuteFrame
-	25, // 64: adal.tunnel.v1.TunnelRelay.Control:output_type -> adal.tunnel.v1.ControlFrame
-	26, // 65: adal.tunnel.v1.TunnelConfig.ApplyConfig:output_type -> adal.tunnel.v1.ApplyResult
-	30, // 66: adal.tunnel.v1.TunnelAccess.VerifyToken:output_type -> adal.tunnel.v1.AccessResult
-	30, // 67: adal.tunnel.v1.TunnelAccess.CheckSession:output_type -> adal.tunnel.v1.AccessResult
-	32, // 68: adal.tunnel.v1.TunnelRead.ReadDetails:output_type -> adal.tunnel.v1.RequestDetails
-	35, // 69: adal.tunnel.v1.TunnelRead.ReadBody:output_type -> adal.tunnel.v1.BodyFrame
-	37, // 70: adal.tunnel.v1.TunnelQuota.GetTunnelQuota:output_type -> adal.tunnel.v1.TunnelQuotaState
-	63, // [63:71] is the sub-list for method output_type
-	55, // [55:63] is the sub-list for method input_type
+	26, // 58: adal.tunnel.v1.TunnelConfig.ReportApplied:input_type -> adal.tunnel.v1.ApplyResult
+	27, // 59: adal.tunnel.v1.TunnelAccess.VerifyToken:input_type -> adal.tunnel.v1.VerifyTokenRequest
+	28, // 60: adal.tunnel.v1.TunnelAccess.CheckSession:input_type -> adal.tunnel.v1.CheckSessionRequest
+	31, // 61: adal.tunnel.v1.TunnelRead.ReadDetails:input_type -> adal.tunnel.v1.ReadDetailsRequest
+	33, // 62: adal.tunnel.v1.TunnelRead.ReadBody:input_type -> adal.tunnel.v1.ReadBodyRequest
+	36, // 63: adal.tunnel.v1.TunnelQuota.GetTunnelQuota:input_type -> adal.tunnel.v1.GetTunnelQuotaRequest
+	19, // 64: adal.tunnel.v1.TunnelRelay.Execute:output_type -> adal.tunnel.v1.ExecuteFrame
+	25, // 65: adal.tunnel.v1.TunnelRelay.Control:output_type -> adal.tunnel.v1.ControlFrame
+	26, // 66: adal.tunnel.v1.TunnelConfig.ApplyConfig:output_type -> adal.tunnel.v1.ApplyResult
+	26, // 67: adal.tunnel.v1.TunnelConfig.ReportApplied:output_type -> adal.tunnel.v1.ApplyResult
+	30, // 68: adal.tunnel.v1.TunnelAccess.VerifyToken:output_type -> adal.tunnel.v1.AccessResult
+	30, // 69: adal.tunnel.v1.TunnelAccess.CheckSession:output_type -> adal.tunnel.v1.AccessResult
+	32, // 70: adal.tunnel.v1.TunnelRead.ReadDetails:output_type -> adal.tunnel.v1.RequestDetails
+	35, // 71: adal.tunnel.v1.TunnelRead.ReadBody:output_type -> adal.tunnel.v1.BodyFrame
+	37, // 72: adal.tunnel.v1.TunnelQuota.GetTunnelQuota:output_type -> adal.tunnel.v1.TunnelQuotaState
+	64, // [64:73] is the sub-list for method output_type
+	55, // [55:64] is the sub-list for method input_type
 	55, // [55:55] is the sub-list for extension type_name
 	55, // [55:55] is the sub-list for extension extendee
 	0,  // [0:55] is the sub-list for field type_name
