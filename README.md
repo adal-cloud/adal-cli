@@ -255,6 +255,12 @@ with exponential delay from one to ten seconds and bounded jitter. A session
 that lasts at least sixty seconds resets that delay. Ping and Pong use ten-second
 intervals and deadlines. Invalid tokens and disabled access stop reconnecting.
 
+The tunnel writes timestamped event blocks to stdout. The session logs connection
+attempts, configuration changes, failures, retry delays, and shutdown. Each HTTP
+exchange logs admission, body chunks in both directions, HTTP status, and the
+transfer outcome with elapsed time. Chunk events include sequence and byte count.
+Tokens, URLs with request paths or queries, headers, and body contents are omitted.
+
 The executor streams both directions independently. Request and response windows
 are 256 KiB each. Data chunks are at most 64 KiB and frames at most 128 KiB.
 At most 64 exchanges run locally, also limited by the active snapshot. Each

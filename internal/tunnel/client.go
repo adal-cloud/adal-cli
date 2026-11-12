@@ -11,6 +11,7 @@ import (
 	"github.com/coder/websocket"
 	"google.golang.org/protobuf/proto"
 	"io"
+	"log"
 	"math/rand/v2"
 	"sync"
 	"time"
@@ -23,34 +24,36 @@ func Run(ctx context.Context, address, token string, stdout io.Writer) error {
 	if stdout == nil {
 		stdout = io.Discard
 	}
+	logger := log.New(stdout, "", log.LstdFlags)
+	host := logHost(address, token)
 	delay := time.Second
-	for {
-		if ctx.Err() != nil {
-			return nil
-		}
+	for ctx.Err() == nil {
 		started := time.Now()
-		_, _ = io.WriteString(stdout, "Connecting\n")
-		err := connect(ctx, address, token, stdout)
+		printEvent(logger, console.Event{Title: "Connecting", Host: host})
+		err := connect(ctx, address, token, logger)
 		if ctx.Err() != nil {
-			return nil
+			break
 		}
 		if fatal := fatalClose(err); fatal != nil {
+			printEvent(logger, console.Event{Title: "Connection failed", Reason: fatal.Error()})
 			return fatal
 		}
+		printEvent(logger, console.Event{Title: "Connection failed", Reason: sessionFailure(err)})
 		if time.Since(started) >= 60*time.Second {
 			delay = time.Second
 		}
-		_, _ = io.WriteString(stdout, "Reconnecting\n")
 		pause := min(10*time.Second, time.Duration(float64(delay)*(0.8+rand.Float64()*0.4)))
+		printEvent(logger, console.Event{Title: "Reconnecting", DelayMS: pause.Milliseconds(), HasDelay: true})
 		timer := time.NewTimer(pause)
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			return nil
 		case <-timer.C:
 		}
 		delay = min(10*time.Second, delay*2)
 	}
+	printEvent(logger, console.Event{Title: "Stopped"})
+	return nil
 }
 func fatalClose(err error) error {
 	switch websocket.CloseStatus(err) {
@@ -102,18 +105,20 @@ type connection struct {
 	identity                       *pb.ControlFrame
 	preparedControl, activeControl string
 	workers                        sync.WaitGroup
+	logger                         *log.Logger
 }
 
-func connect(parent context.Context, address, token string, stdout io.Writer) error {
+func connect(parent context.Context, address, token string, logger *log.Logger) error {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 	c, _, err := websocket.Dial(ctx, address, nil)
 	if err != nil {
-		return err
+		return errors.Join(errHandshake, err)
 	}
 	defer c.CloseNow()
+	printEvent(logger, console.Event{Title: "WebSocket connected"})
 	c.SetReadLimit(tunnelwire.MaxFrameBytes)
-	s := &connection{ctx: ctx, cancel: cancel, socket: c, executor: NewExecutor()}
+	s := &connection{ctx: ctx, cancel: cancel, socket: c, executor: NewExecutor(), logger: logger}
 	s.writer = tunnelwire.NewWriter(ctx, func(ctx context.Context, raw []byte) error { return c.Write(ctx, websocket.MessageBinary, raw) })
 	defer func() {
 		cancel()
@@ -166,12 +171,13 @@ func connect(parent context.Context, address, token string, stdout io.Writer) er
 			return errProtocol
 		}
 		if control, err := tunnelwire.UnmarshalControl(data); err == nil && len(control.ProtoReflect().GetUnknown()) == 0 {
-			wasActive := s.active != nil
+			previous := s.active
 			if err = s.control(control); err != nil {
 				return err
 			}
-			if !wasActive && s.active != nil {
-				_, _ = io.WriteString(stdout, console.Format(console.Event{Title: "Connected"}))
+			s.logControl(control, previous)
+			if previous == nil && s.active != nil {
+				printEvent(logger, console.Event{Title: "Connected"})
 			}
 			continue
 		}
@@ -183,6 +189,7 @@ func connect(parent context.Context, address, token string, stdout io.Writer) er
 			if s.identity == nil || s.active == nil || frame.SessionId != s.identity.SessionId || frame.ControlId != s.activeControl {
 				return errProtocol
 			}
+			s.logFrame(frame)
 			x, err := s.executor.Start(ctx, s.active, frame)
 			if err != nil {
 				code := pb.ErrorCode_ERROR_CODE_TUNNEL_NOT_READY
@@ -198,7 +205,24 @@ func connect(parent context.Context, address, token string, stdout io.Writer) er
 			}
 			stopQueued := context.AfterFunc(x.ctx, func() { s.writer.Cancel(frame.RequestId) })
 			s.workers.Add(1)
-			go func() { defer s.workers.Done(); defer stopQueued(); _ = x.Run(s.executeWrite) }()
+			go func() {
+				defer s.workers.Done()
+				defer stopQueued()
+				started := time.Now()
+				err := x.Run(s.executeWrite)
+				event := console.Event{
+					Title: "Tunnel request finished", Request: frame.RequestId,
+					DurationMS: time.Since(started).Milliseconds(), HasDuration: true,
+				}
+				if err != nil {
+					event.Title = "Tunnel request failed"
+					event.Code = errorCode(err)
+					if event.Code == "" {
+						event.Reason = "Tunnel stream write failed"
+					}
+				}
+				printEvent(logger, event)
+			}()
 		} else {
 			s.executor.mu.Lock()
 			x := s.executor.active[frame.RequestId]
@@ -214,6 +238,7 @@ func connect(parent context.Context, address, token string, stdout io.Writer) er
 				if errors.Is(err, ErrClosed) {
 					continue
 				}
+				printEvent(logger, console.Event{Title: "Tunnel request frame rejected", Request: frame.RequestId, Code: errorCode(err)})
 				x.Cancel()
 				reply := x.frame()
 				reply.Payload = &pb.ExecuteFrame_Error{Error: &pb.Termination{Direction: pb.Direction_DIRECTION_RESPONSE, Code: pb.ErrorCode_ERROR_CODE_PROTOCOL_ERROR}}
@@ -221,7 +246,9 @@ func connect(parent context.Context, address, token string, stdout io.Writer) er
 				if encodeErr == nil {
 					_, _ = s.writer.Enqueue(ctx, frame.RequestId, true, raw)
 				}
+				continue
 			}
+			s.logFrame(frame)
 		}
 	}
 }
@@ -244,7 +271,11 @@ func (s *connection) executeWrite(f *pb.ExecuteFrame) error {
 	}
 	priority := f.GetWindowUpdate() != nil || f.GetCancel() != nil || f.GetError() != nil || f.GetOpenAck() != nil
 	err = s.writer.Write(s.ctx, f.RequestId, priority, raw)
-	if err != nil && !errors.Is(err, tunnelwire.ErrWriterFull) && !errors.Is(err, tunnelwire.ErrStreamClosed) {
+	if err == nil {
+		s.logFrame(f)
+		return nil
+	}
+	if !errors.Is(err, tunnelwire.ErrWriterFull) && !errors.Is(err, tunnelwire.ErrStreamClosed) {
 		s.cancel()
 		_ = s.socket.CloseNow()
 	}

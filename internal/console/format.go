@@ -22,6 +22,9 @@ type Event struct {
 	Diagnostic  string
 	Reason      string
 	Status      int
+	Bytes       int
+	Sequence    uint64
+	Revision    int64
 	DurationMS  int64
 	QueueMS     int64
 	DelayMS     int64
@@ -64,6 +67,13 @@ func fields(e Event) []field {
 	add("outcome", e.Outcome)
 	if e.Status >= 100 && e.Status <= 599 {
 		add("status", fmt.Sprintf("HTTP %d", e.Status))
+	}
+	if e.Sequence > 0 {
+		add("sequence", fmt.Sprint(e.Sequence))
+		add("bytes", fmt.Sprint(e.Bytes))
+	}
+	if e.Revision > 0 {
+		add("revision", fmt.Sprint(e.Revision))
 	}
 	add("error", e.Error)
 	add("code", e.Code)
