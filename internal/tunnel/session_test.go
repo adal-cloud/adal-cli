@@ -10,14 +10,33 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
+
+type sessionOutput struct {
+	mu   sync.Mutex
+	text strings.Builder
+}
+
+func (b *sessionOutput) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.text.Write(p)
+}
+
+func (b *sessionOutput) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.text.String()
+}
 
 func TestSessionExecutesWithoutJournal(t *testing.T) {
 	endpoint := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, "live bytes") }))
 	defer endpoint.Close()
 	cfg := snapshot(endpoint.URL)
+	var stdout sessionOutput
 	done := make(chan error, 1)
 	peer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c, err := websocket.Accept(w, r, nil)
@@ -63,21 +82,26 @@ func TestSessionExecutesWithoutJournal(t *testing.T) {
 			done <- err
 			return
 		}
+		if got := stdout.String(); got != "Connecting\n" {
+			t.Errorf("stdout before activation = %q", got)
+		}
 		ctl.Payload = &pb.ControlFrame_Activate{Activate: &pb.ActivateRevision{Next: &pb.RevisionState{Revision: cfg.Revision, ConfigHash: cfg.ConfigHash}}}
-		if err = writeControl(); err != nil {
-			done <- err
-			return
-		}
-		_, raw, err = c.Read(ctx)
-		if err != nil {
-			done <- err
-			return
-		}
-		reply, err = tunnelwire.UnmarshalControl(raw)
-		if err != nil || reply.GetActive() == nil {
-			t.Error("missing active")
-			done <- err
-			return
+		for range 2 {
+			if err = writeControl(); err != nil {
+				done <- err
+				return
+			}
+			_, raw, err = c.Read(ctx)
+			if err != nil {
+				done <- err
+				return
+			}
+			reply, err = tunnelwire.UnmarshalControl(raw)
+			if err != nil || reply.GetActive() == nil {
+				t.Error("missing active")
+				done <- err
+				return
+			}
 		}
 		open := opening(cfg, "GET", "/", "")
 		zero := int64(0)
@@ -143,11 +167,14 @@ func TestSessionExecutesWithoutJournal(t *testing.T) {
 	defer peer.Close()
 	ctx, cancel := context.WithTimeout(t.Context(), 6*time.Second)
 	defer cancel()
-	err := Run(ctx, "ws"+strings.TrimPrefix(peer.URL, "http"), "aaaaaaataaaaaaaaaaaaaaaaaaaaaaaa", io.Discard)
+	err := Run(ctx, "ws"+strings.TrimPrefix(peer.URL, "http"), "aaaaaaataaaaaaaaaaaaaaaaaaaaaaaa", &stdout)
 	if err == nil || err.Error() != "Token is invalid" {
 		t.Fatal("fatal close", err)
 	}
 	if err := <-done; err != nil {
 		t.Fatal(err)
+	}
+	if got := stdout.String(); got != "Connecting\nConnected\n\n" {
+		t.Errorf("stdout after activation and replay = %q", got)
 	}
 }

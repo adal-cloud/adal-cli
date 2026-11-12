@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/adal-cloud/adal-cli/internal/console"
 	pb "github.com/adal-cloud/adal-cli/internal/tunnelpb"
 	"github.com/adal-cloud/adal-cli/internal/tunnelwire"
 	"github.com/coder/websocket"
@@ -29,7 +30,7 @@ func Run(ctx context.Context, address, token string, stdout io.Writer) error {
 		}
 		started := time.Now()
 		_, _ = io.WriteString(stdout, "Connecting\n")
-		err := connect(ctx, address, token)
+		err := connect(ctx, address, token, stdout)
 		if ctx.Err() != nil {
 			return nil
 		}
@@ -103,7 +104,7 @@ type connection struct {
 	workers                        sync.WaitGroup
 }
 
-func connect(parent context.Context, address, token string) error {
+func connect(parent context.Context, address, token string, stdout io.Writer) error {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 	c, _, err := websocket.Dial(ctx, address, nil)
@@ -165,8 +166,12 @@ func connect(parent context.Context, address, token string) error {
 			return errProtocol
 		}
 		if control, err := tunnelwire.UnmarshalControl(data); err == nil && len(control.ProtoReflect().GetUnknown()) == 0 {
+			wasActive := s.active != nil
 			if err = s.control(control); err != nil {
 				return err
+			}
+			if !wasActive && s.active != nil {
+				_, _ = io.WriteString(stdout, console.Format(console.Event{Title: "Connected"}))
 			}
 			continue
 		}

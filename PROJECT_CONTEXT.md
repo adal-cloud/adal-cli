@@ -169,8 +169,10 @@ binary adal.tunnel.v1 frames on the same session URL. A token with `i` in that
 position uses Inbound. The Inbound sections above describe its own behavior.
 
 Prepare validates an immutable endpoint snapshot. Activate selects it for new
-requests. An active exchange retains its original endpoint and timeout. HTTP
-starts after OpenAck is written. There is no journal, HTTP retry, or replay.
+requests. The CLI prints `Connected` once per WebSocket session after sending
+its first `Active` acknowledgement. An active exchange retains its original
+endpoint and timeout. HTTP starts after OpenAck is written. There is no
+journal, HTTP retry, or replay.
 Disconnecting cancels active HTTP calls. Temporary session failures reconnect
 with exponential delay from one to ten seconds and bounded jitter. A session
 that lasts at least sixty seconds resets that delay. Ping and Pong use ten-second
