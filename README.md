@@ -1,6 +1,6 @@
 # Adal CLI
 
-Client for CLI Server. Module `github.com/adal-cloud/adal-cli`.
+Delivers Inbound webhooks to local applications and connects HTTP Tunnels.
 
 Product decisions are in `PROJECT_CONTEXT.md`. This file repeats the contract and describes what the process does.
 
@@ -20,7 +20,10 @@ The binaries are not code-signed or notarized.
 Release builds and publication run manually in GitHub Actions. Pushes, tags, and pull requests do not start them.
 See [release instructions](docs/releases.md) for build-only runs and publication.
 
-## Purpose
+Use the CLI token issued for your Inbound Channel or HTTP Tunnel.
+For setup, see the [Adal CLI guide](https://adal.cloud/en/docs/inbound/adal-cli).
+
+## Inbound delivery
 
 The process keeps one WebSocket session to CLI Server. It accepts assignments. It calls each enabled endpoint URL. It reports the attempt. Assignments, delivery progress, and unacknowledged reports are stored on disk for one server and one channel. A repeated assignment keeps the first endpoint snapshot. A stored assignment can still finish after its body is no longer available from the server.
 
